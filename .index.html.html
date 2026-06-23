@@ -1,0 +1,2448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luxe Salon Beauty Hair Studio - Management System</title>
+    <!-- 引入高阶 Chart.js 报表库 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #F7F2EC;       /* 奶油白 */
+            --secondary: #EADBC8;     /* 米杏色 */
+            --accent: #BCA38A;        /* 浅咖啡 */
+            --text: #4A403A;          /* 深咖啡/主力文字 */
+            --danger: #D65A5A;        /* 柔和红 / 警告 */
+            --success: #7E9B76;       /* 柔和绿 / 成功 */
+            --warning: #E6A23C;       /* 柔和橘 */
+            --info: #409EFF;          /* 柔和蓝 */
+            --white: #FFFFFF;
+            --shadow: 0 10px 30px rgba(74, 64, 58, 0.05);
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --radius-sm: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            color: var(--text);
+        }
+
+        body {
+            background-color: var(--primary);
+            padding-top: 85px;
+            padding-bottom: 40px;
+            min-height: 100vh;
+        }
+
+        /* 顶部固定导航栏 (Fixed Navigation) */
+        header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 75px;
+            background-color: rgba(247, 242, 236, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 24px;
+            box-shadow: 0 2px 15px rgba(74, 64, 58, 0.03);
+            z-index: 1000;
+            border-bottom: 1px solid rgba(234, 219, 200, 0.6);
+        }
+
+        .brand-logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: 0.5px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand-logo span {
+            font-size: 0.7rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 2px;
+        }
+
+        nav {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            white-space: nowrap;
+            max-width: 80%;
+            padding: 5px 0;
+        }
+
+        nav::-webkit-scrollbar {
+            display: none;
+        }
+
+        nav button {
+            background: none;
+            border: none;
+            padding: 10px 18px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.25s ease;
+        }
+
+        nav button.active, nav button:hover {
+            background-color: var(--secondary);
+            color: var(--text);
+        }
+
+        /* 统一流式响应大容器 */
+        .container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* 全局高阶仪表盘网格系统 */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .dash-card {
+            background: var(--white);
+            padding: 16px;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(234, 219, 200, 0.3);
+            transition: transform 0.2s;
+        }
+
+        .dash-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .dash-card p {
+            font-size: 0.75rem;
+            color: var(--accent);
+            font-weight: 700;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        .dash-card h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        /* 快速入口区布局 */
+        .quick-actions-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 24px;
+            background: var(--white);
+            padding: 14px;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow);
+        }
+
+        /* 架构页切换机制 */
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* 圆角高级轻卡片 */
+        .card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+            border: 1px solid rgba(234, 219, 200, 0.2);
+            position: relative;
+        }
+
+        h2, h3, h4 {
+            font-weight: 700;
+            position: relative;
+            margin-bottom: 18px;
+        }
+
+        h2 { font-size: 1.4rem; padding-left: 14px; }
+        h2::before {
+            content: ''; position: absolute; left: 0; top: 4px; bottom: 4px; width: 4px;
+            background-color: var(--accent); border-radius: 2px;
+        }
+
+        /* 经典双栏自适应网格 */
+        .layout-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+
+        @media(min-width: 992px) {
+            .layout-grid-2 { grid-template-columns: 1.1fr 1.9fr; }
+        }
+
+        /* 日历引擎专属 CSS UI */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            text-align: center;
+        }
+
+        .calendar-header-cell {
+            padding: 8px 0;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .calendar-day:hover {
+            background-color: var(--secondary);
+        }
+
+        .calendar-day.active {
+            background-color: var(--text) !important;
+            color: var(--white) !important;
+            box-shadow: 0 4px 10px rgba(74, 64, 58, 0.3);
+        }
+
+        .calendar-day.today {
+            border: 2px solid var(--accent);
+        }
+
+        /* 输入控件及交互表单 */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid var(--secondary);
+            border-radius: var(--radius-sm);
+            background-color: var(--white);
+            font-size: 0.9rem;
+            outline: none;
+            transition: border 0.2s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--accent);
+        }
+
+        /* 横向与标签选择控件包 */
+        .tag-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .tag-item {
+            background: var(--primary);
+            border: 1px solid var(--secondary);
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tag-item.selected {
+            background: var(--accent);
+            color: var(--white);
+            border-color: var(--accent);
+        }
+
+        .scroll-container {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            scrollbar-width: thin;
+        }
+
+        /* 底部浮动或滑出抽屉层 (Bottom Sheet Panel) */
+        .sheet-mask {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(74, 64, 58, 0.4);
+            z-index: 1500;
+            display: none;
+            backdrop-filter: blur(4px);
+        }
+
+        .bottom-sheet {
+            position: fixed;
+            bottom: -100%; left: 0; right: 0;
+            background: var(--white);
+            border-top-left-radius: var(--radius-lg);
+            border-top-right-radius: var(--radius-lg);
+            box-shadow: 0 -5px 30px rgba(0,0,0,0.08);
+            z-index: 2000;
+            max-height: 90vh;
+            overflow-y: auto;
+            transition: bottom 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+            padding: 24px;
+        }
+
+        .bottom-sheet.open {
+            bottom: 0;
+        }
+
+        .sheet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            border-bottom: 1px solid var(--primary);
+            padding-bottom: 12px;
+        }
+
+        .tab-bar {
+            display: flex;
+            gap: 12px;
+            border-bottom: 2px solid var(--primary);
+            margin-bottom: 18px;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.9rem;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            border-bottom-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* 简易计算器 */
+        .calc-box {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-top: 8px;
+            max-width: 320px;
+        }
+
+        .calc-btn {
+            background: var(--primary);
+            border: 1px solid var(--secondary);
+            padding: 14px;
+            text-align: center;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 700;
+            transition: background 0.15s;
+        }
+
+        .calc-btn:hover { background: var(--secondary); }
+
+        /* 右下角大浮动按钮 (FAB) */
+        .fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: var(--white);
+            font-size: 32px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(188, 163, 138, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 99;
+            transition: transform 0.2s;
+        }
+
+        .fab:hover { transform: scale(1.05); }
+
+        /* 纯前端轻量响应式表格体系 */
+        .table-responsive {
+            overflow-x: auto;
+            margin-top: 12px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--secondary);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.88rem;
+            background-color: var(--white);
+        }
+
+        th, td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--primary);
+            vertical-align: middle;
+        }
+
+        th {
+            background-color: var(--primary);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.78rem;
+            letter-spacing: 0.5px;
+        }
+
+        /* 状态与控制按钮样式 */
+        .sticky-footer {
+            position: sticky;
+            bottom: 0;
+            background: var(--white);
+            padding: 18px;
+            border-top: 1px solid var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .btn {
+            background: var(--accent);
+            color: var(--white);
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.85rem;
+            transition: opacity 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover { opacity: 0.9; }
+        .btn-danger { background: var(--danger); }
+        .btn-success { background: var(--success); }
+        .btn-info { background: var(--info); }
+        .btn-sm { padding: 6px 12px; font-size: 0.75rem; border-radius: 6px; }
+
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+
+        /* 徽章标记机制 */
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-align: center;
+        }
+        .badge-success { background-color: rgba(126, 155, 118, 0.15); color: var(--success); }
+        .badge-danger { background-color: rgba(214, 90, 90, 0.15); color: var(--danger); }
+        .badge-warning { background-color: rgba(230, 162, 60, 0.15); color: var(--warning); }
+        .badge-info { background-color: rgba(64, 159, 255, 0.15); color: var(--info); }
+
+        /* 档案深度面板样式 */
+        .profile-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        @media(min-width: 768px) {
+            .profile-container { grid-template-columns: 300px 1fr; }
+        }
+        .profile-sidebar {
+            background: var(--primary);
+            padding: 20px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--secondary);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 顶部固定高阶统一导航栏 -->
+    <header>
+        <div class="brand-logo">
+            Luxe Salon
+            <span>Beauty Hair Studio</span>
+        </div>
+        <nav id="mainNav">
+            <button class="active" onclick="switchRoutingEngine('calendar')">Calendar</button>
+            <button onclick="switchRoutingEngine('records')">Records</button>
+            <button onclick="switchRoutingEngine('reports')">Reports</button>
+            <button onclick="switchRoutingEngine('customer')">Customer & Membership</button>
+            <button onclick="switchRoutingEngine('staff')">Staff & Commission</button>
+            <button onclick="switchRoutingEngine('settings')">Settings</button>
+        </nav>
+    </header>
+
+    <div class="container">
+        <!-- 实时顶部核心大盘指标分析网格 -->
+        <div class="dashboard-grid">
+            <div class="dash-card"><p>Today Revenue</p><h3 id="dTodayRev" style="color:var(--success)">RM 0.00</h3></div>
+            <div class="dash-card"><p>Today Expense</p><h3 id="dTodayExp" style="color:var(--danger)">RM 0.00</h3></div>
+            <div class="dash-card"><p>Today Profit</p><h3 id="dTodayProfit">RM 0.00</h3></div>
+            <div class="dash-card"><p>Monthly Revenue</p><h3 id="dMonthRev">RM 0.00</h3></div>
+            <div class="dash-card"><p>Monthly Expense</p><h3 id="dMonthExp" style="color:var(--danger)">RM 0.00</h3></div>
+            <div class="dash-card"><p>Monthly Profit</p><h3 id="dMonthProfit">RM 0.00</h3></div>
+            <div class="dash-card"><p>Avg Spending</p><h3 id="dAvgSpend">RM 0.00</h3></div>
+            <div class="dash-card"><p>Outstanding Recv</p><h3 id="dTotalOutstanding" style="color:var(--warning)">RM 0.00</h3></div>
+            <div class="dash-card"><p>Active Packages</p><h3 id="dActivePkgs" style="color:var(--info)">0 Card</h3></div>
+        </div>
+
+        <!-- 快捷操作中转控制台 -->
+        <div class="quick-actions-bar">
+            <button class="btn btn-success" onclick="openTerminalLauncher('income')">➕ New Income Record</button>
+            <button class="btn btn-danger" onclick="openTerminalLauncher('expense')">➖ New Expense Item</button>
+            <button class="btn" onclick="initiateQuickCustomerCreation()">👤 Add New Customer</button>
+            <button class="btn btn-info" onclick="switchRoutingEngine('customer')">📦 Manage Packages / Wallet</button>
+            <button class="btn" style="background-color: var(--text);" onclick="switchRoutingEngine('reports')">📊 Analytical Center</button>
+        </div>
+
+        <!-- ================= PAGE 1: CALENDAR (默认首页) ================= -->
+        <div id="page-calendar" class="page active">
+            <div class="layout-grid-2">
+                <div class="card">
+                    <div class="flex-between" style="margin-bottom:18px;">
+                        <button class="btn btn-sm" onclick="adjustCalendarMonthPointer(-1)">◀</button>
+                        <h3 id="lblCalendarMonthTitle" style="margin-bottom:0; font-size:1.15rem;">June 2026</h3>
+                        <button class="btn btn-sm" onclick="adjustCalendarMonthPointer(1)">▶</button>
+                    </div>
+                    <div class="calendar-grid" id="calendarGridWrapper"></div>
+                </div>
+                <div class="card">
+                    <h2 id="lblDailyBoxTitle">Daily Records Box</h2>
+                    <div id="dailyBoxContainer" style="max-height:450px; overflow-y:auto; padding-right:5px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= PAGE 2: TOTAL RECORDS ================= -->
+        <div id="page-records" class="page">
+            <div class="card">
+                <div class="flex-between" style="flex-wrap:wrap; gap:15px; margin-bottom:15px;">
+                    <h2>Total Financial Transaction Records</h2>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-sm btn-info" onclick="triggerSystemExportEngine('xlsx')">Export Excel</button>
+                        <button class="btn btn-sm btn-success" onclick="triggerSystemExportEngine('csv')">Export CSV</button>
+                        <button class="btn btn-sm" style="background-color: var(--text);" onclick="window.print()">Export PDF</button>
+                    </div>
+                </div>
+
+                <!-- 多功能精细过滤器集群 -->
+                <div class="grid-2" style="margin-bottom:14px;">
+                    <input type="text" id="recSearchInput" placeholder="🔍 Search via Customer Name, Staff, Invoice No, Service..." oninput="refreshRecordsMatrixView()">
+                    <select id="recRangeSelector" onchange="applyRecordsTimePreset()">
+                        <option value="thisWeek">Preset: Current Week (Default)</option>
+                        <option value="today">Preset: Today Current Date</option>
+                        <option value="thisMonth">Preset: Current Month</option>
+                        <option value="thisYear">Preset: Current Fiscal Year</option>
+                        <option value="custom">Preset: Custom Date Range Below</option>
+                    </select>
+                </div>
+
+                <div id="recCustomDateContainer" class="grid-2" style="display:none; margin-bottom:14px; background:var(--primary); padding:10px; border-radius:var(--radius-sm);">
+                    <div class="form-group" style="margin-bottom:0;"><label>Start Date</label><input type="date" id="recFilterStartDate" onchange="refreshRecordsMatrixView()"></div>
+                    <div class="form-group" style="margin-bottom:0;"><label>End Date</label><input type="date" id="recFilterEndDate" onchange="refreshRecordsMatrixView()"></div>
+                </div>
+
+                <!-- 快速筛选页签 -->
+                <div class="scroll-container" style="margin-bottom:15px;">
+                    <button class="tag-item selected" id="recTab-all" onclick="setRecStatusFilter('all')">All Records</button>
+                    <button class="tag-item" id="recTab-income" onclick="setRecStatusFilter('income')">Incomes Only</button>
+                    <button class="tag-item" id="recTab-expense" onclick="setRecStatusFilter('expense')">Expenses Only</button>
+                    <button class="tag-item" id="recTab-outstanding" onclick="setRecStatusFilter('outstanding')">🟠 Outstanding (Unpaid)</button>
+                    <button class="tag-item" id="recTab-fullyPaid" onclick="setRecStatusFilter('fullyPaid')">🟢 Fully Paid</button>
+                </div>
+
+                <div class="layout-grid-2">
+                    <div class="table-responsive" style="margin-top:0;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th><th>Type</th><th>Particulars</th><th>Financial Amount</th><th>Responsible / Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recordsMainTableBody"></tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- 侧边透视看板区 -->
+                    <div>
+                        <div class="card" style="background:var(--primary); padding:16px; margin-bottom:14px;">
+                            <h3>⚠️ Customer Arrears (Outstanding)</h3>
+                            <div id="recArrearsOverviewList" style="max-height:180px; overflow-y:auto; font-size:0.85rem; line-height:2;"></div>
+                        </div>
+                        <div class="card" style="background:var(--primary); padding:16px;">
+                            <h3>👥 Active Weekly Staff Performance Summary</h3>
+                            <div id="recStaffSummaryMiniBox" style="max-height:220px; overflow-y:auto; font-size:0.82rem;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 全固定常驻全局财务对账统计底部栏 -->
+                <div class="sticky-footer" style="background:var(--primary); border-radius:var(--radius-md); margin-top:20px; flex-wrap:wrap; gap:10px;">
+                    <div>Inflow: <span id="lblFootIncome" style="color:var(--success); font-weight:700;">RM 0.00</span></div>
+                    <div>Outflow: <span id="lblFootExpense" style="color:var(--danger); font-weight:700;">RM 0.00</span></div>
+                    <div>Profit: <span id="lblFootProfit" style="font-weight:700;">RM 0.00</span></div>
+                    <div style="border-left:1px solid var(--accent); padding-left:15px; font-size:0.8rem; color:var(--text);">
+                        Total Client Headcount: <span id="lblFootCustCount" style="font-weight:700;">0</span> | 
+                        Arrears Pool: <span id="lblFootUnpaidAmt" style="color:var(--danger); font-weight:700;">RM 0.00</span> | 
+                        Package Deductions: <span id="lblFootPkgUsage" style="color:var(--info); font-weight:700;">0 Sessions</span> | 
+                        Total Comm Payout: <span id="lblFootTotalComm" style="font-weight:700;">RM 0.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= PAGE 3: REPORTS ================= -->
+        <div id="page-reports" class="page">
+            <div class="card">
+                <div class="tab-bar">
+                    <button class="tab-btn" id="repPeriod-daily" onclick="changeReportPeriodScope('daily')">Daily Report</button>
+                    <button class="tab-btn active" id="repPeriod-monthly" onclick="changeReportPeriodScope('monthly')">Monthly Report</button>
+                    <button class="tab-btn" id="repPeriod-yearly" onclick="changeReportPeriodScope('yearly')">Yearly Report</button>
+                </div>
+                <div class="form-group" style="max-width:300px;">
+                    <label id="lblReportPeriodCtx">Select Month Target Context</label>
+                    <input type="month" id="repMonthPicker" value="2026-06" onchange="refreshAnalyticalReportsView()">
+                    <input type="date" id="repDatePicker" value="2026-06-22" style="display:none;" onchange="refreshAnalyticalReportsView()">
+                    <input type="number" id="repYearPicker" value="2026" min="2020" max="2035" style="display:none;" onchange="refreshAnalyticalReportsView()">
+                </div>
+
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:24px;">
+                    <div class="card" style="margin-bottom:0;">
+                        <h3>Financial Allocation Pie Chart</h3>
+                        <div style="position:relative; height:240px;"><canvas id="chartFinancialPie"></canvas></div>
+                        <div id="lblFinancialPieBreakdown" style="margin-top:10px; font-size:0.85rem; line-height:1.8; text-align:center;"></div>
+                    </div>
+                    <div class="card" style="margin-bottom:0;">
+                        <h3>Core Revenue Trajectory Trend</h3>
+                        <div style="position:relative; height:240px;"><canvas id="chartRevenueLine"></canvas></div>
+                    </div>
+                    <div class="card" style="margin-bottom:0;">
+                        <h3>Service Line Revenue Analysis</h3>
+                        <div style="position:relative; height:240px;"><canvas id="chartServiceDoughnut"></canvas></div>
+                    </div>
+                    <div class="card" style="margin-bottom:0;">
+                        <h3>Client Spending Analysis Matrix</h3>
+                        <div style="padding:15px 5px; line-height:2.5;">
+                            <div>Current Context Period Average: <span id="repSpentCurrent" style="font-weight:700; font-size:1.1rem;">RM 0.00</span></div>
+                            <div>Historical Context Baseline Average: <span style="font-weight:600; color:var(--accent);">RM 198.00</span></div>
+                            <div>Analytical Growth Dynamic Status: <span id="repSpentGrowthBadge"></span></div>
+                            <hr style="border:none; border-top:1px dashed var(--secondary); margin:10px 0;">
+                            <h4>Top 10 High Yield Revenue Services</h4>
+                            <ol id="repTopServicesList" style="padding-left:20px; font-size:0.85rem; line-height:2;"></ol>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 独立账期员工阶梯目标薪酬表 -->
+                <div class="card" style="margin-top:24px; padding:0; border:none; box-shadow:none;">
+                    <h3>👥 Staff Commission Matrix & Target Milestones Summary</h3>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Staff Name</th><th>Served Clients</th><th>Revenue Contribution</th><th>Assigned Target</th><th>Milestone Rate</th><th>Net Commission Payable</th><th>Action Control</th>
+                                </tr>
+                            </thead>
+                            <tbody id="repStaffTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= PAGE 4: CUSTOMER DETAILS & MEMBERSHIP ================= -->
+        <div id="page-customer" class="page">
+            <div class="card">
+                <div class="flex-between" style="flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+                    <h2>Customer Master Directory & Membership Hub</h2>
+                    <button class="btn btn-success" onclick="openNewCustomerDialog()">👤 Register New Client Profile</button>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="custMasterSearchField" placeholder="🔍 Instantly lookup via Name, Phone Number, Customer ID..." oninput="refreshCustomerHubTableView()">
+                </div>
+
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Client Details</th><th>Membership Tier</th><th>Outstanding Pool</th><th>Active Packages Status</th><th>Operational Control</th>
+                            </tr>
+                        </thead>
+                        <tbody id="custHubTableBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- 深度客户端主个人全量画像档案追踪面板 -->
+                <div id="custProfileDashboardWrapper" class="card" style="display:none; margin-top:24px; background-color:rgba(247,242,236,0.5);">
+                    <div class="flex-between">
+                        <h3>📋 Core Interactive Dossier: <span id="profHeaderName" style="color:var(--accent);">Client Profile</span></h3>
+                        <button class="btn btn-sm btn-danger" onclick="document.getElementById('custProfileDashboardWrapper').style.display='none'">✕ Close Dossier</button>
+                    </div>
+                    <div class="profile-container">
+                        <div class="profile-sidebar">
+                            <p style="font-size:0.75rem; font-weight:700; color:var(--accent);">BASIC FILE PROFILE</p>
+                            <div style="line-height:2; margin-top:10px; font-size:0.88rem;">
+                                <div><b>ID:</b> <span id="profId"></span></div>
+                                <div><b>Phone:</b> <span id="profPhone"></span></div>
+                                <div><b>Birthday:</b> <span id="profBday"></span></div>
+                                <div><b>Joined Since:</b> <span id="profJoinDate"></span></div>
+                                <div><b>Wallet Credit:</b> <span id="profCreditWallet" class="badge badge-info">RM 0.00</span></div>
+                                <div style="margin-top:10px;"><label><b>Dossier Technical Notes:</b></label>
+                                    <textarea id="profNotesField" rows="3" style="font-size:0.8rem; margin-top:5px;" onchange="saveCustomerProfileNotes()"></textarea>
+                                </div>
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:8px; margin-top:15px;">
+                                <button class="btn btn-sm btn-info" onclick="triggerLaunchPackagePurchaseModal()">📦 Purchase Treatment Package</button>
+                                <button class="btn btn-sm btn-success" onclick="triggerLaunchArrearsClearModal()">💰 Process Arrears Balance Payment</button>
+                                <button class="btn btn-sm" style="background-color:var(--accent);" onclick="triggerLaunchPointsRedeemModal()">🎁 Redeem Points Loyalty Rewards</button>
+                            </div>
+                        </div>
+                        <div>
+                            <h3>📊 Client Financial Statistics Summary</h3>
+                            <div class="grid-4" style="margin-bottom:15px; text-align:center;">
+                                <div class="dash-card" style="padding:10px;"><p>Total Spend</p><b id="profStatSpend">RM 0</b></div>
+                                <div class="dash-card" style="padding:10px;"><p>Total Visits</p><b id="profStatVisits">0</b></div>
+                                <div class="dash-card" style="padding:10px;"><p>Ticket Avg</p><b id="profStatAvg">RM 0</b></div>
+                                <div class="dash-card" style="padding:10px;"><p>Points Balance</p><b id="profStatPoints" style="color:var(--success)">0 pts</b></div>
+                            </div>
+
+                            <h3>📦 Registered Treatment Package Subscriptions</h3>
+                            <div class="table-responsive" style="margin-bottom:15px;">
+                                <table>
+                                    <thead><tr><th>Package Program</th><th>Purchase Metadata</th><th>Quota Balance</th><th>Usage Timeline Audit Log</th></tr></thead>
+                                    <tbody id="profPackageTableBody"></tbody>
+                                </table>
+                            </div>
+
+                            <h3>🧾 Complete Historical Order Invoices & Installment Flow</h3>
+                            <div class="table-responsive">
+                                <table>
+                                    <thead><tr><th>Timeline Date</th><th>Invoice Token</th><th>Service Description Particulars</th><th>Invoice Value</th><th>Payment Tracking Log</th></tr></thead>
+                                    <tbody id="profOrderHistoryTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= PAGE 5: STAFF DETAILS & COMMISSION ================= -->
+        <div id="page-staff" class="page">
+            <div class="card">
+                <div class="flex-between" style="flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+                    <h2>Human Resources Matrix & Performance Leaderboard</h2>
+                    <button class="btn btn-success" onclick="openRegisterStaffDialog()">➕ Recruit & Register New Staff Profile</button>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Staff ID</th><th>Professional Staff Name</th><th>Position Rank</th><th>Phone Reference</th><th>Current Month Contribution</th><th>Current Month Comm</th><th>Control</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staffRegistryTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= PAGE 6: SETTINGS ================= -->
+        <div id="page-settings" class="page">
+            <div class="card">
+                <h2>System Control Panel & Advanced Parameter Configurations</h2>
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:24px; margin-top:15px;">
+                    <div>
+                        <h3>💇‍♀️ Core Dynamic Service Catalog Configuration</h3>
+                        <div style="display:flex; gap:6px; margin-bottom:12px;">
+                            <input type="text" id="cfgSrvName" placeholder="New Service Line Label">
+                            <input type="number" id="cfgSrvPrice" placeholder="RM" style="width:90px;">
+                            <button class="btn" onclick="commitConfigCatalogAppend('services')">+</button>
+                        </div>
+                        <ul id="cfgServicesListUl" style="list-style:none; line-height:2.2; font-size:0.9rem;"></ul>
+                    </div>
+                    
+                    <div>
+                        <h3>🧴 Add-on Upgrade & Product Retail Catalog Configuration</h3>
+                        <div style="display:flex; gap:6px; margin-bottom:12px;">
+                            <input type="text" id="cfgAddonName" placeholder="New Upgrade Item Label">
+                            <input type="number" id="cfgAddonPrice" placeholder="RM" style="width:90px;">
+                            <button class="btn" onclick="commitConfigCatalogAppend('addons')">+</button>
+                        </div>
+                        <ul id="cfgAddonsListUl" style="list-style:none; line-height:2.2; font-size:0.9rem;"></ul>
+                    </div>
+
+                    <div>
+                        <h3>📉 Operational Expense Categories Master Definition</h3>
+                        <div style="display:flex; gap:6px; margin-bottom:12px;">
+                            <select id="cfgExpMainCat">
+                                <option value="Inventory">Inventory</option>
+                                <option value="Equipment">Equipment</option>
+                                <option value="Studio Operation">Studio Operation</option>
+                                <option value="Marketing & Misc">Marketing & Misc</option>
+                            </select>
+                            <input type="text" id="cfgExpItemName" placeholder="New Expense Item">
+                            <button class="btn" onclick="commitConfigExpenseItemAppend()">+</button>
+                        </div>
+                        <div id="cfgExpenseTreeContainer" style="font-size:0.85rem; line-height:2; max-height:300px; overflow-y:auto; background:var(--primary); padding:10px; border-radius:var(--radius-sm);"></div>
+                    </div>
+
+                    <div>
+                        <h3>📈 Dynamic Commission Structure & Milestones Policy</h3>
+                        <div style="font-size:0.85rem; background:var(--primary); padding:15px; border-radius:var(--radius-md);">
+                            <p style="font-weight:700; margin-bottom:10px;">Global Tier Commission Settings (Revenue ≥ Value)</p>
+                            <div id="cfgCommRulesContainer" style="display:grid; gap:8px; margin-bottom:10px;"></div>
+                            <button class="btn btn-sm" onclick="addNewTierCommissionConfigRule()">+ Add New Commission Tier</button>
+                        </div>
+                        
+                        <div style="font-size:0.85rem; background:var(--primary); padding:15px; border-radius:var(--radius-md); margin-top:14px;">
+                            <p style="font-weight:700; margin-bottom:10px;">Loyalty Rewards Point Conversion Rule</p>
+                            <div class="grid-2">
+                                <div class="form-group"><label>Spending Amount</label><input type="number" id="cfgPointBaseRM" value="1" onchange="saveGlobalPointsConversionRule()"></div>
+                                <div class="form-group"><label>Earned Points</label><input type="number" id="cfgPointYield" value="1" onchange="saveGlobalPointsConversionRule()"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3>🎁 Loyalty Reward Redemption Configuration</h3>
+                        <div style="display:flex; gap:6px; margin-bottom:12px;">
+                            <input type="text" id="cfgRewardName" placeholder="Free Hair Wash / Gift Voucher">
+                            <input type="number" id="cfgRewardPoints" placeholder="Points" style="width:90px;">
+                            <button class="btn" onclick="commitConfigRewardItemAppend()">+</button>
+                        </div>
+                        <ul id="cfgRewardsListUl" style="list-style:none; line-height:2.2; font-size:0.9rem;"></ul>
+                    </div>
+
+                    <div>
+                        <h3>💾 Cloud-Node Database Synchronization & Cold Backup</h3>
+                        <div style="display:grid; grid-template-columns:1fr; gap:10px;">
+                            <button class="btn" style="width:100%;" onclick="triggerCloudDatabaseDownloadJSON()">📦 Backup Data Model (JSON Structure)</button>
+                            <label class="btn btn-info" style="text-align:center; display:block; cursor:pointer;">
+                                📥 Synchronize & Overwrite Local Database Node
+                                <input type="file" id="uploadDatabaseFileJson" style="display:none;" onchange="importJSONBackupDataEngine(event)">
+                            </label>
+                            <button class="btn btn-danger" style="width:100%;" onclick="wipeAndResetFactoryDatabase()">⚠️ Hard Factory Reset Database</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MULTI-MODULE INTERACTIVE TERMINAL LAUNCHER (BOTTOM SHEET) ================= -->
+    <button class="fab" onclick="openTerminalLauncher('income')">+</button>
+    <div class="sheet-mask" id="sheetComponentMask" onclick="closeTerminalLauncher()"></div>
+    
+    <div class="bottom-sheet" id="multiModuleInteractiveTerminal">
+        <div class="sheet-header">
+            <h3 style="margin-bottom:0;" id="lblTerminalHeaderTitle">New Core Terminal Entry</h3>
+            <button onclick="closeTerminalLauncher()" style="background:none; border:none; font-size:1.4rem; cursor:pointer; font-weight:bold;">✕</button>
+        </div>
+        <div class="tab-bar" id="terminalTabControllerRow">
+            <button class="tab-btn active" id="termTabBtn-income" onclick="toggleTerminalViewMode('income')">Income Billing Module</button>
+            <button class="tab-btn" id="termTabBtn-expense" onclick="toggleTerminalViewMode('expense')">Expense Ledger Module</button>
+        </div>
+
+        <!-- INCOME FORM BILLING TERMINAL -->
+        <div id="termWrapperIncomeForm">
+            <div class="grid-3">
+                <div class="form-group"><label>Transaction Timeline Date</label><input type="date" id="incDate" onchange="syncSelectedDateToGlobal(this.value)"></div>
+                <div class="form-group">
+                    <label>Client Profiling Context Mode</label>
+                    <select id="incCustMode" onchange="handleIncomeCustomerTypeToggle()">
+                        <option value="existing">Select Existing Registered Member Profile</option>
+                        <option value="new">Walk-In / Create Brand New Profile</option>
+                    </select>
+                </div>
+                <div class="form-group" id="incCustSelectGroup">
+                    <label>Select Customer Profile</label>
+                    <select id="incCustUid" onchange="syncBillingTerminalCustomerPackageMetadata()"></select>
+                </div>
+            </div>
+
+            <div id="incCustNewGroup" class="grid-3" style="display:none; background:rgba(234,219,200,0.3); padding:10px; border-radius:var(--radius-sm); margin-bottom:14px;">
+                <div class="form-group" style="margin-bottom:0;"><label>Full Name</label><input type="text" id="incNewName"></div>
+                <div class="form-group" style="margin-bottom:0;"><label>Contact Mobile Phone</label><input type="text" id="incNewPhone"></div>
+                <div class="form-group" style="margin-bottom:0;"><label>Birthday</label><input type="date" id="incNewBday" value="1998-01-01"></div>
+            </div>
+
+            <!-- 配套卡消费网格核销控件 -->
+            <div id="incPackageDeductionContainer" style="display:none; background:rgba(126,155,118,0.1); border:1px dashed var(--success); padding:14px; border-radius:var(--radius-md); margin-bottom:14px;">
+                <div class="flex-between">
+                    <div>
+                        <b style="color:var(--success);">🎁 Active Package Detected!</b>
+                        <span id="incPackageMetaLabel" style="font-size:0.85rem; margin-left:10px;"></span>
+                    </div>
+                    <button class="btn btn-sm btn-success" id="btnUsePkgTicket" onclick="togglePackageBillingTicketDeductionMode(true)">Use Existing Package Session</button>
+                    <button class="btn btn-sm btn-danger" id="btnCancelPkgTicket" onclick="togglePackageBillingTicketDeductionMode(false)" style="display:none;">Cancel Package Session Deduction</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Main Technical Services Selection (Multiple Select) <span style="color:var(--danger)">*</span></label>
+                <div class="tag-container" id="incServicesTagGrid"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Add-On Retail Products / Upgrades Selection (Multiple Select)</label>
+                <div class="tag-container" id="incAddonsTagGrid"></div>
+            </div>
+
+            <div class="form-group" style="background:var(--primary); padding:12px; border-radius:var(--radius-sm);">
+                <label>Marketing campaigns & Customized Discounts Scheme Matrix</label>
+                <div class="tag-container">
+                    <button class="tag-item" id="discBtn-p5" onclick="applyIncomeDiscountStructure('p', 5, 'discBtn-p5')">5%</button>
+                    <button class="tag-item" id="discBtn-p10" onclick="applyIncomeDiscountStructure('p', 10, 'discBtn-p10')">10%</button>
+                    <button class="tag-item" id="discBtn-customP" onclick="applyIncomeDiscountStructure('p', 'custom', 'discBtn-customP')">Custom %</button>
+                    <button class="tag-item" id="discBtn-customA" onclick="applyIncomeDiscountStructure('f', 'custom', 'discBtn-customA')">Custom Amount</button>
+                </div>
+                <div id="incCustomDiscountInputWrapper" style="display:none; margin-top:8px;">
+                    <input type="number" id="incCustomDiscountValue" placeholder="Insert Custom Discount Value..." oninput="recalculateBillingTerminalFormEngine()">
+                </div>
+            </div>
+
+            <!-- 多元分合支付账单管理控件 -->
+            <div class="grid-4" style="background:rgba(188,163,138,0.1); padding:14px; border-radius:var(--radius-md); margin-bottom:14px; align-items:end;">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Payment Method Category</label>
+                    <select id="incPayMethod">
+                        <option value="Cash">Cash</option>
+                        <option value="QR Payment">QR Payment</option>
+                        <option value="Online Transfer">Online Transfer</option>
+                        <option value="Credit Card">Credit Card</option>
+                        <option value="Mixed Payment">Mixed Payment (Split)</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Customer Paid Amount (RM)</label>
+                    <input type="number" id="incPaidAmount" value="0" step="0.01" oninput="recalculateBillingTerminalFormEngine()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Outstanding Balance</label>
+                    <input type="text" id="incOutstandingLabel" value="RM 0.00" readonly style="font-weight:700; background:rgba(255,255,255,0.5);">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Payment Status Indicator</label>
+                    <div id="incStatusIndicatorBox" style="padding:10px; text-align:center; font-weight:700; font-size:0.85rem; border-radius:6px; background:#fff;">-</div>
+                </div>
+            </div>
+
+            <!-- 协同美发派单与佣金拆分 -->
+            <div class="card" style="background:var(--primary); padding:15px; margin-bottom:15px; box-shadow:none; border:1px solid var(--secondary);">
+                <h4>💇‍♀️ Staff Operations & Dual-Service Commission Split Splitter</h4>
+                <div class="grid-3" style="margin-bottom:10px;">
+                    <div class="form-group" style="margin-bottom:0;"><label>Main Stylist (Required)</label><select id="incStaffMain" onchange="autoCalculateStaffCommissionAllocation()"></select></div>
+                    <div class="form-group" style="margin-bottom:0;"><label>Main Override Comm %</label><input type="number" id="incStaffMainCustomPct" placeholder="Override %" oninput="autoCalculateStaffCommissionAllocation()"></div>
+                    <div class="form-group" style="margin-bottom:0;"><label>Main Fixed Comm (RM)</label><input type="number" id="incStaffMainCustomAmt" placeholder="Override Fixed RM" oninput="autoCalculateStaffCommissionAllocation()"></div>
+                </div>
+                <div class="grid-3" style="margin-bottom:10px;">
+                    <div class="form-group" style="margin-bottom:0;"><label>Optional Helper (Assigned)</label><select id="incStaffHelper" onchange="autoCalculateStaffCommissionAllocation()"></select></div>
+                    <div class="form-group" style="margin-bottom:0;"><label>Helper Override Comm %</label><input type="number" id="incStaffHelperCustomPct" placeholder="Override %" oninput="autoCalculateStaffCommissionAllocation()"></div>
+                    <div class="form-group" style="margin-bottom:0;"><label>Helper Fixed Comm (RM)</label><input type="number" id="incStaffHelperCustomAmt" placeholder="Override Fixed RM" oninput="autoCalculateStaffCommissionAllocation()"></div>
+                </div>
+                <div class="grid-3">
+                    <div class="form-group" style="margin-bottom:0;"><label>Shampoo Girl (Assigned)</label><select id="incStaffShampoo" onchange="autoCalculateStaffCommissionAllocation()"></select></div>
+                    <div class="form-group" style="margin-bottom:0;"><label>Shampoo Override Comm %</label><input type="number" id="incStaffShampooCustomPct" placeholder="Override %" oninput="autoCalculateStaffCommissionAllocation()"></div>
+                    <div class="form-group" style="margin-bottom:0;"><label>Shampoo Fixed Comm (RM)</label><input type="number" id="incStaffShampooCustomAmt" placeholder="Override Fixed RM" oninput="autoCalculateStaffCommissionAllocation()"></div>
+                </div>
+                <div class="form-group" style="margin-top:10px; margin-bottom:0;">
+                    <label>Adjustment Meta Reason / Remark Notes</label>
+                    <input type="text" id="incCommOverrideReason" placeholder="Specify internal logic adjustment reasons if manual override is applied...">
+                </div>
+            </div>
+
+            <div class="sticky-footer">
+                <div>
+                    <div style="font-size:1.25rem; font-weight:700;">Final Amount Due: <span id="lblTerminalFinalAmount" style="color:var(--accent);">RM 0.00</span></div>
+                </div>
+                <button class="btn btn-success" onclick="commitBillingTerminalIncomeRecordToDb()">🔒 Transact & Save Invoice</button>
+            </div>
+        </div>
+
+        <!-- EXPENSE MODULE FORM TERMINAL -->
+        <div id="termWrapperExpenseForm" style="display:none;">
+            <div class="grid-3">
+                <div class="form-group"><label>Expense Recorded Date</label><input type="date" id="expDate"></div>
+                <div class="form-group">
+                    <label>Expense Category (Scrollable Filter Node)</label>
+                    <select id="expCategorySelector" onchange="cascadeExpenseConfigItemsDropdownSelect()"></select>
+                </div>
+                <div class="form-group">
+                    <label>Specific Expense Item Selector</label>
+                    <select id="expItemSelector"></select>
+                </div>
+            </div>
+            
+            <div class="grid-3">
+                <div class="form-group"><label>Invoice / Receipt Voucher No.</label><input type="text" id="expInvoiceNo" placeholder="e.g. INV-2026-9901"></div>
+                <div class="form-group"><label>Financial Method Way</label>
+                    <select id="expPayMethod">
+                        <option value="Cash">Cash</option>
+                        <option value="QR Payment">QR Payment</option>
+                        <option value="Online Transfer">Online Transfer</option>
+                        <option value="Credit Card">Credit Card</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Particular Remark Description</label><input type="text" id="expDesc" placeholder="Enter detailed descriptions for accountability..."></div>
+            </div>
+
+            <div class="form-group">
+                <label>Core Asset Amount Field (With In-built Basic Evaluation Calculator)</label>
+                <input type="text" id="expCalcDisplay" placeholder="0.00" oninput="evaluateCalculatorExpressionString(this.value, false)" style="font-size:1.3rem; font-weight:700; letter-spacing:1px; text-align:right;">
+                <div class="calc-box">
+                    <div class="calc-btn" onclick="pressCalcKeyToken('7')">7</div>
+                    <div class="calc-btn" onclick="pressCalcKeyToken('8')">8</div>
+                    <div class="calc-btn" onclick="pressCalcKeyToken('9')">9</div>
+                    <div class="calc-btn" onclick="pressCalcKeyToken('/')">÷</div>
+                    <div class="calc-btn" onclick="pressCalcKeyToken('4')">4</div>
+                    <div class="calc-btn" onclick="pressCalcKeyToken('5')">5</div>
+                    <div class="calc-btn" onclick="pressCalcKeyToken('6')">6</div>
+                    <div class="calc-btn" onclick="pressCalcKeyToken('*')">×</div>
+                    <div class="calc-btn" onclick="pressCalcKeyToken('1')">1</div>
+                    <div class="calc-btn" onclick="pressCalcKeyToken('2')">2</div>
+                    <div class="calc-btn" onclick="pressCalcKeyToken('3')">3</div>
+                    <div class="calc-btn" onclick="pressCalcKeyToken('+')">+</div>
+                    <div class="calc-btn" onclick="pressCalcKeyToken('0')">0</div>
+                    <div class="calc-btn" onclick="pressCalcKeyToken('.')">.</div>
+                    <div class="calc-btn" onclick="evaluateCalculatorExpressionString(null, true)">=</div>
+                    <div class="calc-btn" style="color:var(--danger);" onclick="wipeCalculatorTerminalField()">C</div>
+                </div>
+            </div>
+
+            <div class="sticky-footer">
+                <h3>Total Evaluated Expense: <span id="lblTerminalTotalExpense" style="color:var(--danger);">RM 0.00</span></h3>
+                <button class="btn btn-danger" onclick="commitExpenseLedgerRecordToDb()">🔒 Transact & Save Expense</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= SUB-MODAL LOGIC CONTEXT (POPUP OVERLAYS) ================= -->
+    <div class="sheet-mask" id="subModalComponentMask" style="z-index:3000; display:none;" onclick="closeActiveSubModalOverlay()"></div>
+    <div class="bottom-sheet" id="subModalContainerPanel" style="z-index:3500; max-width:550px; margin:0 auto; border-radius:var(--radius-lg);">
+        <div class="sheet-header">
+            <h3 id="subModalTitleText" style="margin-bottom:0;">Sub Operational Terminal</h3>
+            <button onclick="closeActiveSubModalOverlay()" style="background:none; border:none; font-size:1.3rem; cursor:pointer;">✕</button>
+        </div>
+        <div id="subModalContentDynamicWrapper"></div>
+    </div>
+
+    <!-- ================= SYSTEM ENGINE CORE JAVASCRIPT ================= -->
+    <script>
+        // --- DATA ARCHITECTURE DEFINITION CORE MODEL ---
+        let currentActiveRoutingPath = "calendar";
+        let globalSelectedDateStr = "2026-06-22"; 
+        let calendarContextObj = new Date(2026, 5, 22); 
+        let recFilterStatusScope = "all";
+        let reportScopePeriodMode = "monthly";
+        
+        let billingTerminalSelectedSrvUids = [];
+        let billingTerminalSelectedAddonUids = [];
+        let billingActiveDiscountScheme = { type: 'p', value: 0, buttonId: null };
+        let billingPackageDeductionModeActive = false;
+
+        // 全局核心系统数据库结构模型定义
+        let mainSysDb = {
+            services: [
+                { id: "srv1", name: "Hair Cut", price: 60 },
+                { id: "srv2", name: "Hair Color", price: 250 },
+                { id: "srv3", name: "Treatment", price: 150 },
+                { id: "srv4", name: "Hair Wash", price: 35 },
+                { id: "srv5", name: "Scalp Treatment", price: 180 },
+                { id: "srv6", name: "Highlight", price: 220 },
+                { id: "srv7", name: "Hair Extension", price: 580 },
+                { id: "srv8", name: "Hair Perming", price: 320 },
+                { id: "srv9", name: "Hair Styling / Blow Dry", price: 50 }
+            ],
+            addons: [
+                { id: "add1", name: "shampoo", price: 25 },
+                { id: "add2", name: "product", price: 80 },
+                { id: "add3", name: "wash face", price: 40 },
+                { id: "add4", name: "amp", price: 35 }
+            ],
+            expenseCatalog: {
+                "Inventory": ["Shampoo", "Conditioner", "Hair Spray", "Colour", "Product"],
+                "Equipment": ["Machine", "Trolley"],
+                "Studio Operation": ["Rental", "Utilities", "Internet"],
+                "Marketing & Misc": ["Official Account Fee", "Training Course"]
+            },
+            commTiers: [
+                { minRevenue: 0, percentage: 0 },
+                { minRevenue: 5000, percentage: 5 },
+                { minRevenue: 10000, percentage: 8 },
+                { minRevenue: 15000, percentage: 10 },
+                { minRevenue: 20000, percentage: 15 }
+            ],
+            pointsRule: { baseRM: 1, yieldPoints: 1 },
+            rewardsCatalog: [
+                { id: "rew1", name: "Free Hair Wash", pointsRequired: 100 },
+                { id: "rew2", name: "RM30 Voucher", pointsRequired: 300 },
+                { id: "rew3", name: "Treatment Upgrade", pointsRequired: 500 }
+            ],
+            staff: [
+                { id: "STF-00001", name: "Jason", position: "Senior Hair Stylist", phone: "+60123456701", joinDate: "2024-01-10", status: "Active" },
+                { id: "STF-00002", name: "Amy", position: "Junior Hair Stylist", phone: "+60129876542", joinDate: "2025-03-15", status: "Active" },
+                { id: "STF-00003", name: "Mei", position: "Shampoo Girl", phone: "+60112233445", joinDate: "2026-02-01", status: "Active" },
+                { id: "STF-00004", name: "Yuki", position: "Assistant", phone: "+60178899123", joinDate: "2026-05-10", status: "Active" }
+            ],
+            customers: [
+                {
+                    id: "CUS-00001", name: "Sarah", phone: "0173344556", birthday: "1995-06-15", gender: "Female", notes: "Prefers cold tea. Scalp dry.", memberSince: "2025-08-20",
+                    points: 1250, creditWallet: 0, outstandingBalance: 280,
+                    packages: [
+                        { id: "pkg_1", name: "Scalp Treatment Package", totalSessions: 10, remainingSessions: 7, price: 1200, purchaseDate: "2026-01-05", expiryDate: "2027-01-05", history: [] }
+                    ]
+                },
+                {
+                    id: "CUS-00002", name: "Jason Lee", phone: "0125566778", birthday: "1990-11-23", gender: "Male", notes: "Allergic to specific sprays.", memberSince: "2026-02-12",
+                    points: 450, creditWallet: 50, outstandingBalance: 150, packages: []
+                },
+                {
+                    id: "CUS-00003", name: "Mary", phone: "0169988776", birthday: "1988-03-02", gender: "Female", notes: "Prefers Senior Stylists.", memberSince: "2026-04-01",
+                    points: 3200, creditWallet: 0, outstandingBalance: 500, packages: []
+                }
+            ],
+            records: [
+                {
+                    id: "LS-20260621-0015", date: "2026-06-21", type: "income", invoiceToken: "LS-20260621-0015",
+                    customerUid: "CUS-00001", customerName: "Sarah", details: "Hair Color, Treatment",
+                    amount: 580, paidAmount: 300, outstandingBalance: 280, payStatus: "Partially Paid", payMethod: "Mixed Payment",
+                    staffAllocation: { main: "Jason", helper: "Amy", shampoo: "Mei" },
+                    commissionMetrics: { main: 58, helper: 20, shampoo: 10, overriden: true, reason: "Opening promo split split allocation", originalMain: 58, adjustedMain: 58, date: "2026-06-21" },
+                    packageDeduction: null, pointsYielded: 580
+                },
+                {
+                    id: "EXP-20260621-0001", date: "2026-06-21", type: "expense", category: "Inventory", item: "Colour Stock",
+                    invoiceToken: "INV-2026-001", details: "Loreal Colour Purchase", amount: 350, payMethod: "Online Transfer"
+                }
+            ],
+            historyLogs: [] // 追溯变动轨迹
+        };
+
+        // --- CORE INFRASTRUCTURE PERSISTENCE LAYER ---
+        function executeDatabaseInitialization() {
+            const cache = localStorage.getItem("LUXE_SALON_MATRIX_PRO_DB");
+            if(cache) {
+                try { mainSysDb = JSON.parse(cache); } catch(e) { console.error("Database schema corruption. Falling back to hot template."); }
+            } else { pushLocalDatabaseCache(); }
+            syncGlobalDashboardMetricsWidget();
+        }
+
+        function pushLocalDatabaseCache() {
+            localStorage.setItem("LUXE_SALON_MATRIX_PRO_DB", JSON.stringify(mainSysDb));
+            syncGlobalDashboardMetricsWidget();
+        }
+
+        // --- HOME TERMINAL METRICS GENERATOR ---
+        function syncGlobalDashboardMetricsWidget() {
+            const todayStr = "2026-06-22";
+            const thisMonthStr = "2026-06";
+
+            let todayIncomes = mainSysDb.records.filter(r => r.date === todayStr && r.type === 'income');
+            let todayExpenses = mainSysDb.records.filter(r => r.date === todayStr && r.type === 'expense');
+            let monthIncomes = mainSysDb.records.filter(r => r.date.startsWith(thisMonthStr) && r.type === 'income');
+            let monthExpenses = mainSysDb.records.filter(r => r.date.startsWith(thisMonthStr) && r.type === 'expense');
+
+            let revToday = todayIncomes.reduce((s,r) => s + r.amount, 0);
+            let expToday = todayExpenses.reduce((s,r) => s + r.amount, 0);
+            let revMonth = monthIncomes.reduce((s,r) => s + r.amount, 0);
+            let expMonth = monthExpenses.reduce((s,r) => s + r.amount, 0);
+
+            document.getElementById('dTodayRev').innerText = `RM ${revToday.toFixed(2)}`;
+            document.getElementById('dTodayExp').innerText = `RM ${expToday.toFixed(2)}`;
+            document.getElementById('dTodayProfit').innerText = `RM ${(revToday - expToday).toFixed(2)}`;
+            document.getElementById('dTodayProfit').style.color = (revToday - expToday) >= 0 ? "var(--text)" : "var(--danger)";
+
+            document.getElementById('dMonthRev').innerText = `RM ${revMonth.toFixed(2)}`;
+            document.getElementById('dMonthExp').innerText = `RM ${expMonth.toFixed(2)}`;
+            document.getElementById('dMonthProfit').innerText = `RM ${(revMonth - expMonth).toFixed(2)}`;
+
+            let distinctCustCount = [...new Set(monthIncomes.map(r => r.customerUid))].length;
+            document.getElementById('dAvgSpend').innerText = `RM ${distinctCustCount ? (revMonth / distinctCustCount).toFixed(2) : '0.00'}`;
+            
+            let poolDebt = mainSysDb.customers.reduce((s,c) => s + (c.outstandingBalance || 0), 0);
+            document.getElementById('dTotalOutstanding').innerText = `RM ${poolDebt.toFixed(2)}`;
+
+            let activePkgsCount = mainSysDb.customers.reduce((s,c) => s + (c.packages ? c.packages.filter(p => p.remainingSessions > 0).length : 0), 0);
+            document.getElementById('dActivePkgs').innerText = `${activePkgsCount} Cards`;
+        }
+
+        // --- ENGINE UNIFIED ROUTER DISPATCHER ---
+        function switchRoutingEngine(targetViewPath) {
+            currentActiveRoutingPath = targetViewPath;
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-' + targetViewPath).classList.add('active');
+            
+            document.querySelectorAll('#mainNav button').forEach(b => b.classList.remove('active'));
+            const matchedNavBtn = Array.from(document.querySelectorAll('#mainNav button')).find(b => b.innerText.toLowerCase().includes(targetViewPath.toLowerCase().substring(0,4)));
+            if(matchedNavBtn) matchedNavBtn.classList.add('active');
+
+            if(targetViewPath === 'calendar') { renderCalendarCoreView(); renderDailyRecordsBox(); }
+            else if(targetViewPath === 'records') { applyRecordsTimePreset(); }
+            else if(targetViewPath === 'reports') { refreshAnalyticalReportsView(); }
+            else if(targetViewPath === 'customer') { refreshCustomerHubTableView(); }
+            else if(targetViewPath === 'staff') { refreshStaffRegistryTableView(); }
+            else if(targetViewPath === 'settings') { refreshSettingsConfigurationsUI(); }
+        }
+
+        // ================= INTERACTIVE COMPONENT: PAGE 1: CALENDAR =================
+        function renderCalendarCoreView() {
+            const grid = document.getElementById('calendarGridWrapper');
+            grid.innerHTML = '';
+            const yr = calendarContextObj.getFullYear();
+            const mo = calendarContextObj.getMonth();
+
+            document.getElementById('lblCalendarMonthTitle').innerText = calendarContextObj.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+            let paddingDays = new Date(yr, mo, 1).getDay();
+            let daysInMonth = new Date(yr, mo + 1, 0).getDate();
+
+            ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(w => grid.innerHTML += `<div class="calendar-header-cell">${w}</div>`);
+            for(let p=0; p<paddingDays; p++) grid.innerHTML += `<div></div>`;
+
+            for(let d=1; d<=daysInMonth; d++) {
+                let currentLoopDate = `${yr}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                let styleClass = "calendar-day";
+                if(currentLoopDate === "2026-06-22") styleClass += " today";
+                if(currentLoopDate === globalSelectedDateStr) styleClass += " active";
+
+                grid.innerHTML += `<div class="${styleClass}" onclick="selectCalendarDatePointer('${currentLoopDate}')">${d}</div>`;
+            }
+        }
+
+        function adjustCalendarMonthPointer(dir) {
+            calendarContextObj.setMonth(calendarContextObj.getMonth() + dir);
+            renderCalendarCoreView();
+        }
+
+        function selectCalendarDatePointer(dateStr) {
+            globalSelectedDateStr = dateStr;
+            renderCalendarCoreView();
+            renderDailyRecordsBox();
+        }
+
+        function renderDailyRecordsBox() {
+            document.getElementById('lblDailyBoxTitle').innerText = `Daily Records Box (${globalSelectedDateStr})`;
+            const box = document.getElementById('dailyBoxContainer');
+            box.innerHTML = '';
+
+            let filtered = mainSysDb.records.filter(r => r.date === globalSelectedDateStr);
+            if(filtered.length === 0) {
+                box.innerHTML = `<p style="text-align:center; padding:40px; color:var(--accent); font-size:0.85rem;">No historical billing matrix found on this date.</p>`;
+                return;
+            }
+
+            filtered.forEach(r => {
+                let typeBadge = r.type === 'income' ? `<span class="badge badge-success">INCOME</span>` : `<span class="badge badge-danger">EXPENSE</span>`;
+                let outstandingInfo = r.outstandingBalance > 0 ? `<span class="badge badge-warning">Bal Due: RM ${r.outstandingBalance}</span>` : '';
+                box.innerHTML += `
+                    <div style="background:var(--primary); padding:16px; border-radius:var(--radius-md); margin-bottom:12px; border:1px solid rgba(234,219,200,0.4);">
+                        <div class="flex-between">
+                            <div>
+                                <div style="font-weight:700; font-size:0.92rem; margin-bottom:4px;">${typeBadge} Token: ${r.invoiceToken || r.id}</div>
+                                <div style="font-size:0.8rem; color:var(--text); opacity:0.85;">
+                                    <b>Entity:</b> ${r.customerName || r.category} | <b>Items:</b> ${r.details || r.item}
+                                </div>
+                                <div style="margin-top:6px;">${outstandingInfo}</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-weight:800; font-size:1.1rem; margin-bottom:6px;">RM ${r.amount.toFixed(2)}</div>
+                                <button class="btn btn-sm" onclick="triggerLaunchDetailsViewerModal('${r.id}')">👁 View</button>
+                                <button class="btn btn-sm btn-danger" onclick="triggerItemDeletionEngine('${r.id}')">🗑</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // ================= CORE MODULE INTERACTIVE TERMINAL LAUNCHER (BOTTOM SHEET) =================
+        function openTerminalLauncher(mode) {
+            document.getElementById('incDate').value = globalSelectedDateStr;
+            document.getElementById('expDate').value = globalSelectedDateStr;
+            
+            rebuildTerminalFormDropdownCatalogs();
+            toggleTerminalViewMode(mode);
+            billingTerminalSelectedSrvUids = [];
+            billingTerminalSelectedAddonUids = [];
+            billingActiveDiscountScheme = { type: 'p', value: 0, buttonId: null };
+            billingPackageDeductionModeActive = false;
+            document.getElementById('incCustomDiscountValue').value = '';
+            document.getElementById('incPaidAmount').value = 0;
+
+            rebuildTagGridsInBillingTerminal();
+            recalculateBillingTerminalFormEngine();
+
+            document.getElementById('multiModuleInteractiveTerminal').classList.add('open');
+            document.getElementById('sheetComponentMask').style.display = 'block';
+        }
+
+        function closeTerminalLauncher() {
+            document.getElementById('multiModuleInteractiveTerminal').classList.remove('open');
+            document.getElementById('sheetComponentMask').style.display = 'none';
+        }
+
+        function toggleTerminalViewMode(mode) {
+            document.getElementById('termTabBtn-income').classList.toggle('active', mode==='income');
+            document.getElementById('termTabBtn-expense').classList.toggle('active', mode==='expense');
+            document.getElementById('termWrapperIncomeForm').style.display = mode==='income' ? 'block' : 'none';
+            document.getElementById('termWrapperExpenseForm').style.display = mode==='expense' ? 'block' : 'none';
+            document.getElementById('lblTerminalHeaderTitle').innerText = mode==='income' ? "Income Billing Terminal Engine" : "Expense Ledger Log Terminal";
+        }
+
+        function syncSelectedDateToGlobal(v) { if(v) globalSelectedDateStr = v; }
+
+        function rebuildTerminalFormDropdownCatalogs() {
+            // 绑定客户下拉
+            let custDrop = document.getElementById('incCustUid'); custDrop.innerHTML = '';
+            mainSysDb.customers.forEach(c => custDrop.innerHTML += `<option value="${c.id}">${c.name} (${c.phone})</option>`);
+            
+            // 绑定开单员工组
+            let mainSt = document.getElementById('incStaffMain'); mainSt.innerHTML = '<option value="">-- Main --</option>';
+            let helpSt = document.getElementById('incStaffHelper'); helpSt.innerHTML = '<option value="">-- Helper --</option>';
+            let shampSt = document.getElementById('incStaffShampoo'); shampSt.innerHTML = '<option value="">-- Shampoo --</option>';
+            
+            mainSysDb.staff.filter(s => s.status==='Active').forEach(s => {
+                mainSt.innerHTML += `<option value="${s.name}">${s.name} [${s.position}]</option>`;
+                helpSt.innerHTML += `<option value="${s.name}">${s.name} [${s.position}]</option>`;
+                shampSt.innerHTML += `<option value="${s.name}">${s.name} [${s.position}]</option>`;
+            });
+
+            // 绑定支出总大类
+            let expCatDrop = document.getElementById('expCategorySelector'); expCatDrop.innerHTML = '';
+            Object.keys(mainSysDb.expenseCatalog).forEach(k => expCatDrop.innerHTML += `<option value="${k}">${k}</option>`);
+            cascadeExpenseConfigItemsDropdownSelect();
+        }
+
+        function cascadeExpenseConfigItemsDropdownSelect() {
+            let cat = document.getElementById('expCategorySelector').value;
+            let itemDrop = document.getElementById('expItemSelector'); itemDrop.innerHTML = '';
+            if(mainSysDb.expenseCatalog[cat]) {
+                mainSysDb.expenseCatalog[cat].forEach(i => itemDrop.innerHTML += `<option value="${i}">${i}</option>`);
+            }
+        }
+
+        function handleIncomeCustomerTypeToggle() {
+            let mode = document.getElementById('incCustMode').value;
+            document.getElementById('incCustSelectGroup').style.display = mode === 'existing' ? 'block' : 'none';
+            document.getElementById('incCustNewGroup').style.display = mode === 'new' ? 'grid' : 'none';
+            document.getElementById('incPackageDeductionContainer').style.display = 'none';
+            billingPackageDeductionModeActive = false;
+            if(mode==='existing') syncBillingTerminalCustomerPackageMetadata();
+            recalculateBillingTerminalFormEngine();
+        }
+
+        function rebuildTagGridsInBillingTerminal() {
+            let sGrid = document.getElementById('incServicesTagGrid'); sGrid.innerHTML = '';
+            mainSysDb.services.forEach(s => {
+                let activeClass = billingTerminalSelectedSrvUids.includes(s.id) ? 'selected' : '';
+                sGrid.innerHTML += `<button class="tag-item ${activeClass}" onclick="toggleSrvSelectionToken('${s.id}')">${s.name} (RM${s.price})</button>`;
+            });
+
+            let aGrid = document.getElementById('incAddonsTagGrid'); aGrid.innerHTML = '';
+            mainSysDb.addons.forEach(a => {
+                let activeClass = billingTerminalSelectedAddonUids.includes(a.id) ? 'selected' : '';
+                aGrid.innerHTML += `<button class="tag-item ${activeClass}" onclick="toggleAddonSelectionToken('${a.id}')">${a.name} (RM${a.price})</button>`;
+            });
+        }
+
+        function toggleSrvSelectionToken(id) {
+            if(billingTerminalSelectedSrvUids.includes(id)) billingTerminalSelectedSrvUids = billingTerminalSelectedSrvUids.filter(x=>x!==id);
+            else billingTerminalSelectedSrvUids.push(id);
+            rebuildTagGridsInBillingTerminal(); recalculateBillingTerminalFormEngine();
+        }
+        function toggleAddonSelectionToken(id) {
+            if(billingTerminalSelectedAddonUids.includes(id)) billingTerminalSelectedAddonUids = billingTerminalSelectedAddonUids.filter(x=>x!==id);
+            else billingTerminalSelectedAddonUids.push(id);
+            rebuildTagGridsInBillingTerminal(); recalculateBillingTerminalFormEngine();
+        }
+
+        function syncBillingTerminalCustomerPackageMetadata() {
+            let mode = document.getElementById('incCustMode').value;
+            if(mode !== 'existing') return;
+            let uid = document.getElementById('incCustUid').value;
+            let cust = mainSysDb.customers.find(c => c.id === uid);
+            let pBox = document.getElementById('incPackageDeductionContainer');
+            
+            if(cust && cust.packages && cust.packages.filter(p => p.remainingSessions > 0).length > 0) {
+                let activePkg = cust.packages.find(p => p.remainingSessions > 0);
+                pBox.style.display = "block";
+                document.getElementById('incPackageMetaLabel').innerText = `${activePkg.name} (Remains: ${activePkg.remainingSessions} / ${activePkg.totalSessions} Svs)`;
+            } else {
+                pBox.style.display = "none";
+                togglePackageBillingTicketDeductionMode(false);
+            }
+        }
+
+        function togglePackageBillingTicketDeductionMode(isActive) {
+            billingPackageDeductionModeActive = isActive;
+            document.getElementById('btnUsePkgTicket').style.display = isActive ? 'none' : 'inline-flex';
+            document.getElementById('btnCancelPkgTicket').style.display = isActive ? 'inline-flex' : 'none';
+            recalculateBillingTerminalFormEngine();
+        }
+
+        function applyIncomeDiscountStructure(type, val, btnId) {
+            billingActiveDiscountScheme.type = type;
+            billingActiveDiscountScheme.value = val;
+            billingActiveDiscountScheme.buttonId = btnId;
+            
+            document.getElementById('incCustomDiscountInputWrapper').style.display = val === 'custom' ? 'block' : 'none';
+            document.querySelectorAll('#termWrapperIncomeForm .tag-item').forEach(b => {
+                if(b.id && b.id.startsWith('discBtn-')) b.classList.remove('selected');
+            });
+            if(btnId) document.getElementById(btnId).classList.add('selected');
+            recalculateBillingTerminalFormEngine();
+        }
+
+        function recalculateBillingTerminalFormEngine() {
+            let totalSrv = billingTerminalSelectedSrvUids.reduce((sum, id) => sum + mainSysDb.services.find(s=>s.id===id).price, 0);
+            let totalAddon = billingTerminalSelectedAddonUids.reduce((sum, id) => sum + mainSysDb.addons.find(a=>a.id===id).price, 0);
+            let subtotal = totalSrv + totalAddon;
+            let finalAmount = subtotal;
+
+            // 折扣计算
+            let discVal = 0;
+            if(billingActiveDiscountScheme.value === 'custom') {
+                discVal = parseFloat(document.getElementById('incCustomDiscountValue').value || 0);
+            } else {
+                discVal = billingActiveDiscountScheme.value;
+            }
+
+            if(billingActiveDiscountScheme.type === 'p') {
+                finalAmount = subtotal * (1 - (discVal / 100));
+            } else {
+                finalAmount = Math.max(0, subtotal - discVal);
+            }
+
+            // 配套卡扣减模式
+            if(billingPackageDeductionModeActive) {
+                finalAmount = 0;
+                document.getElementById('incPaidAmount').value = 0;
+                document.getElementById('incPaidAmount').disabled = true;
+            } else {
+                document.getElementById('incPaidAmount').disabled = false;
+            }
+
+            document.getElementById('lblTerminalFinalAmount').innerText = `RM ${finalAmount.toFixed(2)}`;
+
+            let paidAmt = parseFloat(document.getElementById('incPaidAmount').value || 0);
+            let outstanding = finalAmount - paidAmt;
+            let indicator = document.getElementById('incStatusIndicatorBox');
+
+            if(Math.abs(outstanding) < 0.01) {
+                document.getElementById('incOutstandingLabel').value = "RM 0.00";
+                indicator.innerHTML = `<span class="badge badge-success">🟢 Fully Paid</span>`;
+            } else if (outstanding > 0) {
+                document.getElementById('incOutstandingLabel').value = `RM ${outstanding.toFixed(2)}`;
+                indicator.innerHTML = `<span class="badge badge-warning">🟠 Partially Paid</span>`;
+            } else {
+                let creditVal = Math.abs(outstanding);
+                document.getElementById('incOutstandingLabel').value = `Credit: RM ${creditVal.toFixed(2)}`;
+                indicator.innerHTML = `<span class="badge badge-info">🔵 Credit Balance</span>`;
+            }
+
+            autoCalculateStaffCommissionAllocation();
+            return { finalAmount, outstanding, paidAmt };
+        }
+
+        function autoCalculateStaffCommissionAllocation() {
+            let totalSrv = billingTerminalSelectedSrvUids.reduce((sum, id) => sum + mainSysDb.services.find(s=>s.id===id).price, 0);
+            if(totalSrv <= 0) return;
+
+            let mSt = document.getElementById('incStaffMain').value;
+            let hSt = document.getElementById('incStaffHelper').value;
+            let sSt = document.getElementById('incStaffShampoo').value;
+
+            // 获取主力分成基准比率
+            if(mSt && !document.getElementById('incStaffMainCustomAmt').value && !document.getElementById('incStaffMainCustomPct').value) {
+                let sObj = mainSysDb.staff.find(x => x.name === mSt);
+                if(sObj) {
+                    let totalMonthRevenue = mainSysDb.records.filter(r => r.date.startsWith("2026-06") && r.type==='income' && r.staffAllocation.main === mSt).reduce((s,r)=>s+r.amount,0) + totalSrv;
+                    let matchedTier = [...mainSysDb.commTiers].sort((a,b)=>b.minRevenue - a.minRevenue).find(t => totalMonthRevenue >= t.minRevenue);
+                    let rate = matchedTier ? matchedTier.percentage : 10;
+                    document.getElementById('incStaffMainCustomPct').value = rate;
+                }
+            }
+        }
+
+        function commitBillingTerminalIncomeRecordToDb() {
+            let engineCalc = recalculateBillingTerminalFormEngine();
+            if(billingTerminalSelectedSrvUids.length === 0 && !billingPackageDeductionModeActive) {
+                alert("Core Error: A minimum of one service line must be appended to bill."); return;
+            }
+
+            let mode = document.getElementById('incCustMode').value;
+            let targetCustObj = null;
+
+            if(mode === 'new') {
+                let name = document.getElementById('incNewName').value;
+                let phone = document.getElementById('incNewPhone').value;
+                if(!name || !phone) { alert("Please input client essentials."); return; }
+                targetCustObj = {
+                    id: "CUS-" + Date.now().toString().substring(6), name, phone, birthday: document.getElementById('incNewBday').value,
+                    gender: "Unspecified", notes: "Walk-in created via Billing Terminal", memberSince: globalSelectedDateStr,
+                    points: 0, creditWallet: 0, outstandingBalance: 0, packages: []
+                };
+                mainSysDb.customers.push(targetCustObj);
+            } else {
+                targetCustObj = mainSysDb.customers.find(c => c.id === document.getElementById('incCustUid').value);
+            }
+
+            let srvLabels = billingTerminalSelectedSrvUids.map(id => mainSysDb.services.find(s=>s.id===id).name).join(', ');
+            let addonLabels = billingTerminalSelectedAddonUids.map(id => mainSysDb.addons.find(a=>a.id===id).name).join(', ');
+            let particulars = srvLabels + (addonLabels ? " + " + addonLabels : "");
+
+            let mSt = document.getElementById('incStaffMain').value;
+            if(!mSt && !billingPackageDeductionModeActive) { alert("Please route a main professional staff."); return; }
+
+            // 计算确定提成数值
+            let mainComm = parseFloat(document.getElementById('incStaffMainCustomAmt').value || 0);
+            if(!mainComm) {
+                let pct = parseFloat(document.getElementById('incStaffMainCustomPct').value || 0);
+                let totalSrv = billingTerminalSelectedSrvUids.reduce((sum, id) => sum + mainSysDb.services.find(s=>s.id===id).price, 0);
+                mainComm = totalSrv * (pct / 100);
+            }
+
+            let recordToken = "LS-" + globalSelectedDateStr.replace(/-/g,'') + "-" + Date.now().toString().substring(9);
+            let ptsRule = mainSysDb.pointsRule;
+            let pointsGained = Math.floor((engineCalc.finalAmount / ptsRule.baseRM) * ptsRule.yieldPoints);
+
+            let newRecord = {
+                id: recordToken, date: globalSelectedDateStr, type: "income", invoiceToken: recordToken,
+                customerUid: targetCustObj.id, customerName: targetCustObj.name, details: billingPackageDeductionModeActive ? "Package Session Deduct" : particulars,
+                amount: engineCalc.finalAmount, paidAmount: engineCalc.paidAmt, outstandingBalance: Math.max(0, engineCalc.outstanding),
+                payStatus: engineCalc.outstanding <= 0 ? (engineCalc.outstanding < 0 ? "Credit Balance" : "Fully Paid") : "Partially Paid",
+                payMethod: document.getElementById('incPayMethod').value,
+                staffAllocation: { main: mSt, helper: document.getElementById('incStaffHelper').value, shampoo: document.getElementById('incStaffShampoo').value },
+                commissionMetrics: {
+                    main: mainComm,
+                    helper: parseFloat(document.getElementById('incStaffHelperCustomAmt').value || 0),
+                    shampoo: parseFloat(document.getElementById('incStaffShampooCustomAmt').value || 0),
+                    overriden: !!(document.getElementById('incStaffMainCustomAmt').value || document.getElementById('incCommOverrideReason').value),
+                    reason: document.getElementById('incCommOverrideReason').value || "Standard calculation",
+                    originalMain: mainComm, adjustedMain: mainComm, date: globalSelectedDateStr
+                },
+                packageDeduction: null, pointsYielded: pointsGained
+            };
+
+            // 会员钱包与配套卡状态核销资产逻辑
+            if(billingPackageDeductionModeActive) {
+                let targetPkg = targetCustObj.packages.find(p => p.remainingSessions > 0);
+                if(targetPkg) {
+                    targetPkg.remainingSessions--;
+                    targetPkg.history.push({ date: globalSelectedDateStr, staff: mSt, invoiceNo: recordToken });
+                    newRecord.packageDeduction = { pkgId: targetPkg.id, pkgName: targetPkg.name };
+                    if(targetPkg.remainingSessions === 0) alert("📢 Warning Notice: This treatment subscription is now fully exhausted!");
+                    else if(targetPkg.remainingSessions <= 2) alert("📢 Low Balance Warning: Only 2 or fewer sessions left!");
+                }
+            } else {
+                targetCustObj.points += pointsGained;
+                // 升级门槛规则体系驱动
+                if(targetCustObj.points > 3000) targetCustObj.tier = "Platinum";
+                else if(targetCustObj.points > 2000) targetCustObj.tier = "Gold";
+                else if(targetCustObj.points > 1000) targetCustObj.tier = "Silver";
+                else targetCustObj.tier = "Bronze";
+
+                if(engineCalc.outstanding > 0) {
+                    targetCustObj.outstandingBalance += engineCalc.outstanding;
+                } else if(engineCalc.outstanding < 0) {
+                    targetCustObj.creditWallet += Math.abs(engineCalc.outstanding);
+                }
+            }
+
+            mainSysDb.records.push(newRecord);
+            pushLocalDatabaseCache(); closeTerminalLauncher();
+            switchRoutingEngine(currentActiveRoutingPath);
+        }
+
+        // 简易计算机评估引擎
+        function pressCalcKeyToken(char) { document.getElementById('expCalcDisplay').value += char; evaluateCalculatorExpressionString(document.getElementById('expCalcDisplay').value, false); }
+        function wipeCalculatorTerminalField() { document.getElementById('expCalcDisplay').value = ''; document.getElementById('lblTerminalTotalExpense').innerText = "RM 0.00"; }
+        function evaluateCalculatorExpressionString(expr, strictCommit) {
+            let str = expr || document.getElementById('expCalcDisplay').value;
+            try {
+                let processed = str.replace(/×/g, '*').replace(/÷/g, '/');
+                let result = eval(processed);
+                if(result && !isNaN(result)) {
+                    document.getElementById('lblTerminalTotalExpense').innerText = `RM ${parseFloat(result).toFixed(2)}`;
+                    if(strictCommit) document.getElementById('expCalcDisplay').value = parseFloat(result).toFixed(2);
+                }
+            } catch(e){}
+        }
+
+        function commitExpenseLedgerRecordToDb() {
+            let amt = parseFloat(document.getElementById('lblTerminalTotalExpense').innerText.replace('RM ', '')) || 0;
+            if(amt <= 0) { alert("Core Error: Operational records require concrete capital input figures."); return; }
+            
+            let expToken = "EXP-" + Date.now().toString().substring(5);
+            mainSysDb.records.push({
+                id: expToken, date: document.getElementById('expDate').value, type: "expense",
+                category: document.getElementById('expCategorySelector').value, item: document.getElementById('expItemSelector').value,
+                invoiceToken: document.getElementById('expInvoiceNo').value || "VOUCHER-" + Date.now().toString().substring(9),
+                details: document.getElementById('expDesc').value || "Operational Expense Item",
+                amount: amt, payMethod: document.getElementById('expPayMethod').value
+            });
+
+            pushLocalDatabaseCache(); wipeCalculatorTerminalField(); closeTerminalLauncher();
+            switchRoutingEngine(currentActiveRoutingPath);
+        }
+
+        function triggerItemDeletionEngine(id) {
+            if(confirm("Dangerous Action: Are you sure you want to delete this structural ledger record? This will permanently affect metrics.")) {
+                let match = mainSysDb.records.find(r => r.id === id);
+                if(match && match.type === 'income') {
+                    // 回滚用户账目资产
+                    let cust = mainSysDb.customers.find(c => c.id === match.customerUid);
+                    if(cust) {
+                        cust.points = Math.max(0, cust.points - (match.pointsYielded || 0));
+                        cust.outstandingBalance = Math.max(0, cust.outstandingBalance - (match.outstandingBalance || 0));
+                        if(match.packageDeduction) {
+                            let pkg = cust.packages.find(p=>p.id === match.packageDeduction.pkgId);
+                            if(pkg) pkg.remainingSessions++;
+                        }
+                    }
+                }
+                mainSysDb.records = mainSysDb.records.filter(r => r.id !== id);
+                pushLocalDatabaseCache();
+                switchRoutingEngine(currentActiveRoutingPath);
+            }
+        }
+
+        // ================= INTERACTIVE COMPONENT: PAGE 2: TOTAL RECORDS MATRIX =================
+        function applyRecordsTimePreset() {
+            let preset = document.getElementById('recRangeSelector').value;
+            document.getElementById('recCustomDateContainer').style.display = preset === 'custom' ? 'grid' : 'none';
+            
+            let start = ""; let end = "";
+            let today = new Date(2026, 5, 22); // 基准固定锚点时刻 2026-06-22
+
+            if(preset === 'today') {
+                start = end = "2026-06-22";
+            } else if(preset === 'thisWeek') {
+                start = "2026-06-16"; end = "2026-06-22"; // 契合需求范围示例周
+            } else if(preset === 'thisMonth') {
+                start = "2026-06-01"; end = "2026-06-30";
+            } else if(preset === 'thisYear') {
+                start = "2026-01-01"; end = "2026-12-31";
+            }
+            
+            if(preset !== 'custom') {
+                document.getElementById('recFilterStartDate').value = start;
+                document.getElementById('recFilterEndDate').value = end;
+            }
+            refreshRecordsMatrixView();
+        }
+
+        function setRecStatusFilter(scope) {
+            recFilterStatusScope = scope;
+            document.querySelectorAll('#page-records .tag-item').forEach(t => t.classList.remove('selected'));
+            document.getElementById('recTab-' + scope).classList.add('selected');
+            refreshRecordsMatrixView();
+        }
+
+        function refreshRecordsMatrixView() {
+            const tbody = document.getElementById('recordsMainTableBody'); tbody.innerHTML = '';
+            let q = document.getElementById('recSearchInput').value.toLowerCase();
+            let start = document.getElementById('recFilterStartDate').value;
+            let end = document.getElementById('recFilterEndDate').value;
+
+            let arr = [...mainSysDb.records].sort((a,b)=>b.date.localeCompare(a.date));
+
+            // 时间区段与搜索过滤器拦截
+            if(start) arr = arr.filter(r => r.date >= start);
+            if(end) arr = arr.filter(r => r.date <= end);
+            if(q) {
+                arr = arr.filter(r => (r.customerName && r.customerName.toLowerCase().includes(q)) || 
+                                      (r.invoiceToken && r.invoiceToken.toLowerCase().includes(q)) || 
+                                      (r.details && r.details.toLowerCase().includes(q)) ||
+                                      (r.category && r.category.toLowerCase().includes(q)) ||
+                                      (r.staffAllocation && r.staffAllocation.main && r.staffAllocation.main.toLowerCase().includes(q)));
+            }
+
+            // 状态多签页签拦截
+            if(recFilterStatusScope === 'income') arr = arr.filter(r => r.type === 'income');
+            if(recFilterStatusScope === 'expense') arr = arr.filter(r => r.type === 'expense');
+            if(recFilterStatusScope === 'outstanding') arr = arr.filter(r => r.type === 'income' && r.outstandingBalance > 0);
+            if(recFilterStatusScope === 'fullyPaid') arr = arr.filter(r => r.type === 'income' && r.outstandingBalance === 0);
+
+            let inf = 0; let outf = 0; let pkgSessCount = 0; let poolComm = 0;
+
+            tbody.innerHTML = arr.length === 0 ? `<tr><td colspan="5" style="text-align:center; color:var(--accent);">No structural transaction matrix results found.</td></tr>` : '';
+
+            arr.forEach(r => {
+                let labelStyle = r.type === 'income' ? 'badge-success' : 'badge-danger';
+                let outstandingCell = "";
+                
+                if(r.type === 'income') {
+                    inf += r.amount;
+                    if(r.packageDeduction) pkgSessCount++;
+                    poolComm += (r.commissionMetrics.main + r.commissionMetrics.helper + r.commissionMetrics.shampoo);
+                    
+                    let sBadge = r.payStatus === 'Fully Paid' ? 'badge-success' : 'badge-warning';
+                    outstandingCell = `<br><span class="badge ${sBadge}">${r.payStatus}</span>` + 
+                                      (r.outstandingBalance > 0 ? `<br><small style="color:var(--danger); font-weight:700;">Bal Due: RM ${r.outstandingBalance}</small>` : '');
+                } else {
+                    outf += r.amount;
+                }
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><small><b>${r.date}</b></small></td>
+                        <td><span class="badge ${labelStyle}">${r.type.toUpperCase()}</span>${outstandingCell}</td>
+                        <td>
+                            <b>Token:</b> ${r.invoiceToken || r.id}<br>
+                            <b>Target:</b> ${r.customerName || r.category}<br>
+                            <small style="color:var(--accent);"><b>Line:</b> ${r.details || r.item}</small>
+                        </td>
+                        <td style="font-weight:800; font-size:1rem;">RM ${r.amount.toFixed(2)}</td>
+                        <td>
+                            <small>Staff: ${r.staffAllocation ? r.staffAllocation.main : 'System'}</small><br>
+                            <div style="margin-top:6px; display:flex; gap:4px;">
+                                <button class="btn btn-sm btn-info" onclick="triggerLaunchDetailsViewerModal('${r.id}')">👁 Details</button>
+                                <button class="btn btn-sm btn-danger" onclick="triggerItemDeletionEngine('${r.id}')">🗑</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            // 常驻底部财务栏赋值与动态颜色判断
+            document.getElementById('lblFootIncome').innerText = `RM ${inf.toFixed(2)}`;
+            document.getElementById('lblFootExpense').innerText = `RM ${outf.toFixed(2)}`;
+            let net = inf - outf;
+            let fProf = document.getElementById('lblFootProfit'); fProf.innerText = `RM ${net.toFixed(2)}`;
+            if(net > 0) fProf.style.color = "var(--text)";
+            else if(net === 0) fProf.style.color = "gray";
+            else fProf.style.color = "var(--danger)";
+
+            document.getElementById('lblFootCustCount').innerText = [...new Set(arr.filter(r=>r.type==='income').map(r=>r.customerUid))].length;
+            document.getElementById('lblFootUnpaidAmt').innerText = `RM ${arr.filter(r=>r.type==='income').reduce((s,r)=>s+r.outstandingBalance,0).toFixed(2)}`;
+            document.getElementById('lblFootPkgUsage').innerText = `${pkgSessCount} Sessions`;
+            document.getElementById('lblFootTotalComm').innerText = `RM ${poolComm.toFixed(2)}`;
+
+            // 侧边透视块渲染
+            renderRecordsSidebarAggregations(arr);
+        }
+
+        function renderRecordsSidebarAggregations(currentFilteredRecords) {
+            let listBox = document.getElementById('recArrearsOverviewList'); listBox.innerHTML = '';
+            mainSysDb.customers.filter(c => c.outstandingBalance > 0).forEach(c => {
+                listBox.innerHTML += `<div class="flex-between" style="border-bottom:1px dashed var(--secondary);"><span>👤 <b>${c.name}</b></span> <span style="color:var(--danger); font-weight:700;">RM ${c.outstandingBalance.toFixed(2)}</span></div>`;
+            });
+            if(!listBox.innerHTML) listBox.innerHTML = "<p style='color:var(--accent);'>No unpaid ledger entries active.</p>";
+
+            let staffSummaryBox = document.getElementById('recStaffSummaryMiniBox'); staffSummaryBox.innerHTML = '';
+            let staffAggr = {};
+            mainSysDb.staff.forEach(s => staffAggr[s.name] = { count: 0, rev: 0, comm: 0 });
+
+            currentFilteredRecords.filter(r => r.type === 'income').forEach(r => {
+                let m = r.staffAllocation.main;
+                if(staffAggr[m]) {
+                    staffAggr[m].count++;
+                    staffAggr[m].rev += r.amount;
+                    staffAggr[m].comm += r.commissionMetrics.main;
+                }
+            });
+
+            Object.keys(staffAggr).forEach(k => {
+                if(staffAggr[k].count > 0) {
+                    staffSummaryBox.innerHTML += `
+                        <div style="background:#fff; padding:8px; border-radius:6px; margin-bottom:6px; border:1px solid var(--secondary);">
+                            <b>Stylist: ${k}</b><br>
+                            <small>Clients served: ${staffAggr[k].count} | Yield: RM ${staffAggr[k].rev.toFixed(0)} | Comm: <span style="color:var(--success)">RM ${staffAggr[k].comm.toFixed(0)}</span></small>
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        // ================= INTERACTIVE COMPONENT: PAGE 3: REPORTS ANALYTICAL CENTER =================
+        let activeChartFinInstance = null;
+        let activeChartRevInstance = null;
+        let activeChartSrvInstance = null;
+
+        function changeReportPeriodScope(scope) {
+            reportScopePeriodMode = scope;
+            document.querySelectorAll('#page-reports .tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('repPeriod-' + scope).classList.add('active');
+
+            document.getElementById('repMonthPicker').style.display = scope === 'monthly' ? 'block' : 'none';
+            document.getElementById('repDatePicker').style.display = scope === 'daily' ? 'block' : 'none';
+            document.getElementById('repYearPicker').style.display = scope === 'yearly' ? 'block' : 'none';
+
+            refreshAnalyticalReportsView();
+        }
+
+        function refreshAnalyticalReportsView() {
+            let records = mainSysDb.records;
+            let ctxFilter = "";
+
+            if(reportScopePeriodMode === 'monthly') {
+                ctxFilter = document.getElementById('repMonthPicker').value; // e.g. "2026-06"
+                records = records.filter(r => r.date.startsWith(ctxFilter));
+                document.getElementById('lblReportPeriodCtx').innerText = `Monthly Scope Target Context Window: (${ctxFilter})`;
+            } else if(reportScopePeriodMode === 'daily') {
+                ctxFilter = document.getElementById('repDatePicker').value;
+                records = records.filter(r => r.date === ctxFilter);
+                document.getElementById('lblReportPeriodCtx').innerText = `Daily Scope Target Context Window: (${ctxFilter})`;
+            } else {
+                ctxFilter = document.getElementById('repYearPicker').value.toString();
+                records = records.filter(r => r.date.startsWith(ctxFilter));
+                document.getElementById('lblReportPeriodCtx').innerText = `Yearly Scope Fiscal Window: (${ctxFilter})`;
+            }
+
+            let inc = records.filter(r=>r.type==='income').reduce((s,r)=>s+r.amount,0);
+            let exp = records.filter(r=>r.type==='expense').reduce((s,r)=>s+r.amount,0);
+            let net = inc - exp;
+
+            // 销毁旧图表
+            if(activeChartFinInstance) activeChartFinInstance.destroy();
+            if(activeChartRevInstance) activeChartRevInstance.destroy();
+            if(activeChartSrvInstance) activeChartSrvInstance.destroy();
+
+            // 1. 金融大盘环图
+            activeChartFinInstance = new Chart(document.getElementById('chartFinancialPie'), {
+                type: 'pie',
+                data: {
+                    labels: ['Total Revenue Inflow', 'Operational Expense Outflow', 'Net Operational Profit'],
+                    datasets: [{ data: [inc, exp, Math.max(0, net)], backgroundColor: ['#7E9B76', '#D65A5A', '#BCA38A'] }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+            document.getElementById('lblFinancialPieBreakdown').innerHTML = `Inflow: <b>RM ${inc.toFixed(2)}</b> | Outflow: <b>RM ${exp.toFixed(2)}</b> | Profit: <b style="color:var(--success)">RM ${net.toFixed(2)}</b>`;
+
+            // 2. 趋势折线图逻辑
+            let labelsLine = []; let dataLine = [];
+            if(reportScopePeriodMode === 'monthly') {
+                for(let i=1; i<=30; i++) { labelsLine.push(i.toString()); dataLine.push(0); }
+                records.filter(r=>r.type==='income').forEach(r => {
+                    let d = parseInt(r.date.split('-')[2]); if(d<=30) dataLine[d-1] += r.amount;
+                });
+            } else {
+                labelsLine = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                dataLine = Array(12).fill(0);
+                records.filter(r=>r.type==='income').forEach(r => {
+                    let m = parseInt(r.date.split('-')[1]); if(m<=12) dataLine[m-1] += r.amount;
+                });
+            }
+
+            activeChartRevInstance = new Chart(document.getElementById('chartRevenueLine'), {
+                type: 'line',
+                data: { labels: labelsLine, datasets: [{ label: 'Inflow Value Revenue Trajectory', data: dataLine, borderColor: '#BCA38A', tension: 0.15, fill: false }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // 3. 服务类型占比分析
+            let srvMap = {}; mainSysDb.services.forEach(s => srvMap[s.name] = 0);
+            records.filter(r=>r.type==='income').forEach(r => {
+                Object.keys(srvMap).forEach(k => { if(r.details.includes(k)) srvMap[k] += r.amount; });
+            });
+
+            activeChartSrvInstance = new Chart(document.getElementById('chartServiceDoughnut'), {
+                type: 'doughnut',
+                data: { labels: Object.keys(srvMap), datasets: [{ data: Object.values(srvMap), backgroundColor: ['#F7F2EC', '#EADBC8', '#BCA38A', '#4A403A', '#7E9B76', '#D65A5A', '#409EFF', '#E6A23C'] }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // 客单价计算
+            let totalClients = [...new Set(records.filter(r=>r.type==='income').map(r=>r.customerUid))].length;
+            let avg = totalClients ? (inc / totalClients) : 0;
+            document.getElementById('repSpentCurrent').innerText = `RM ${avg.toFixed(2)}`;
+            let badge = document.getElementById('repSpentGrowthBadge');
+            if(avg >= 198) { badge.innerHTML = `<span class="badge badge-success">📈 Upward Trajectory (+${(((avg-198)/198)*100).toFixed(1)}%)</span>`; }
+            else { badge.innerHTML = `<span class="badge badge-danger">📉 Downward Shift (-${(((198-avg)/198)*100).toFixed(1)}%)</span>`; }
+
+            // 渲染高收入技术服务排名
+            let rankUl = document.getElementById('repTopServicesList'); rankUl.innerHTML = '';
+            Object.keys(srvMap).sort((a,b)=>srvMap[b]-srvMap[a]).forEach(k => {
+                if(srvMap[k] > 0) rankUl.innerHTML += `<li><b>${k}:</b> RM ${srvMap[k].toFixed(2)}</li>`;
+            });
+
+            // 结算每月独立员工分成与阶梯绩效目标
+            renderReportStaffCommissionMatrixTable(records);
+        }
+
+        function renderReportStaffCommissionMatrixTable(currentScopedRecords) {
+            const tbody = document.getElementById('repStaffTableBody'); tbody.innerHTML = '';
+            
+            // 为当期账单进行员工表现透视累加
+            let agg = {};
+            mainSysDb.staff.forEach(s => agg[s.name] = { headcount: 0, revenuePool: 0, commPaid: 0, target: 10000 }); // 预设目标一万
+
+            currentScopedRecords.filter(r => r.type === 'income').forEach(r => {
+                let m = r.staffAllocation.main;
+                if(agg[m]) {
+                    agg[m].headcount++;
+                    agg[m].revenuePool += r.amount;
+                    agg[m].commPaid += r.commissionMetrics.main;
+                }
+                // 辅助分流提成
+                let h = r.staffAllocation.helper; if(h && agg[h]) agg[h].commPaid += r.commissionMetrics.helper;
+                let s = r.staffAllocation.shampoo; if(s && agg[s]) agg[s].commPaid += r.commissionMetrics.shampoo;
+            });
+
+            Object.keys(agg).forEach(name => {
+                let obj = agg[name];
+                let achievementPct = obj.revenuePool ? ((obj.revenuePool / obj.target) * 100) : 0;
+                tbody.innerHTML += `
+                    <tr>
+                        <td><b>${name}</b></td>
+                        <td>${obj.headcount} Clients</td>
+                        <td style="font-weight:700;">RM ${obj.revenuePool.toFixed(2)}</td>
+                        <td>RM ${obj.target.toFixed(0)}</td>
+                        <td><b style="color:${achievementPct>=100?'var(--success)':'var(--warning)'}">${achievementPct.toFixed(1)}%</b></td>
+                        <td style="font-weight:800; color:var(--success);">RM ${obj.commPaid.toFixed(2)}</td>
+                        <td><button class="btn btn-sm" onclick="triggerLaunchStaffCommissionBreakdownDossier('${name}')">🔍 Audit Breakdown</button></td>
+                    </tr>
+                `;
+            });
+        }
+
+        // ================= INTERACTIVE COMPONENT: PAGE 4: CUSTOMER DETAILS HUB =================
+        function refreshCustomerHubTableView() {
+            const tbody = document.getElementById('custHubTableBody'); tbody.innerHTML = '';
+            let q = document.getElementById('custMasterSearchField').value.toLowerCase();
+            
+            let filtered = mainSysDb.customers.filter(c => c.name.toLowerCase().includes(q) || c.phone.includes(q) || c.id.toLowerCase().includes(q));
+            
+            filtered.forEach(c => {
+                let pkgStatusText = "<span class='badge'>No Active Packages</span>";
+                if(c.packages && c.packages.length > 0) {
+                    let rem = c.packages.reduce((s,p)=>s+p.remainingSessions,0);
+                    pkgStatusText = `<span class="badge badge-info">${c.packages.length} Packages (${rem} Sessions Left)</span>`;
+                }
+
+                let arrearsBadge = c.outstandingBalance > 0 ? `<span class="badge badge-danger">Owes RM ${c.outstandingBalance.toFixed(2)}</span>` : `<span class="badge badge-success">🟢 Cleared</span>`;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>
+                            <b style="font-size:1rem; color:var(--text);">${c.name}</b><br>
+                            <small style="color:var(--accent);">UID: ${c.id} | Mobile: ${c.phone}</small>
+                        </td>
+                        <td><span class="badge badge-info" style="background:var(--secondary); color:var(--text); font-weight:bold;">${c.tier}</span><br><small>${c.points} Loyalty Points</small></td>
+                        <td>${arrearsBadge}</td>
+                        <td>${pkgStatusText}</td>
+                        <td>
+                            <div style="display:flex; gap:4px;">
+                                <button class="btn btn-sm btn-success" onclick="invokeCustomerDossierTrackingView('${c.id}')">📋 Open Dossier</button>
+                                <button class="btn btn-sm btn-danger" onclick="triggerCustomerDeletionEngine('${c.id}')">🗑</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function invokeCustomerDossierTrackingView(id) {
+            let c = mainSysDb.customers.find(x => x.id === id);
+            if(!c) return;
+
+            document.getElementById('profHeaderName').innerText = `${c.name} [Membership Dossier]`;
+            document.getElementById('profId').innerText = c.id;
+            document.getElementById('profPhone').innerText = c.phone;
+            document.getElementById('profBday').innerText = c.birthday || '-';
+            document.getElementById('profJoinDate').innerText = c.memberSince || '2026-06-16';
+            document.getElementById('profCreditWallet').innerText = `RM ${(c.creditWallet || 0).toFixed(2)}`;
+            document.getElementById('profNotesField').value = c.notes || '';
+            document.getElementById('profNotesField').dataset.uid = c.id;
+
+            // 指标度量衡核算
+            let orders = mainSysDb.records.filter(r => r.customerUid === c.id && r.type === 'income');
+            let spend = orders.reduce((sum,r)=>sum+r.amount,0);
+            document.getElementById('profStatSpend').innerText = `RM ${spend.toFixed(2)}`;
+            document.getElementById('profStatVisits').innerText = orders.length;
+            document.getElementById('profStatAvg').innerText = `RM ${orders.length ? (spend / orders.length).toFixed(2) : '0.00'}`;
+            document.getElementById('profStatPoints').innerText = `${c.points} pts`;
+
+            // 渲染配套疗程列表卡
+            let pBody = document.getElementById('profPackageTableBody'); pBody.innerHTML = '';
+            if(c.packages && c.packages.length > 0) {
+                c.packages.forEach(p => {
+                    let subLog = p.history.map(h => `<small>• ${h.date} Used by ${h.staff} (Inv: ${h.invoiceNo})</small>`).join('<br>');
+                    pBody.innerHTML += `
+                        <tr>
+                            <td><b>${p.name}</b></td>
+                            <td>Value: RM ${p.price}<br><small>Bought: ${p.purchaseDate}<br>Expiry: ${p.expiryDate}</small></td>
+                            <td><b style="font-size:1.05rem; color:var(--success);">${p.remainingSessions} / ${p.totalSessions}</b> Remaining</td>
+                            <td>${subLog || '<span style="color:var(--accent);">No historical audit usages tracked.</span>'}</td>
+                        </tr>
+                    `;
+                });
+            } else { pBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--accent);">No active packages linked.</td></tr>`; }
+
+            // 订单回溯流
+            let oBody = document.getElementById('profOrderHistoryTableBody'); oBody.innerHTML = '';
+            if(orders.length > 0) {
+                orders.forEach(o => {
+                    oBody.innerHTML += `
+                        <tr>
+                            <td><small>${o.date}</small></td>
+                            <td><small><b>${o.invoiceToken}</b></small></td>
+                            <td>${o.details}</td>
+                            <td><b>RM ${o.amount.toFixed(2)}</b></td>
+                            <td>
+                                <span class="badge badge-success">${o.payMethod}</span><br>
+                                <span style="font-size:0.75rem; font-weight:700; color:var(--danger);">${o.outstandingBalance > 0 ? 'Arrears: RM ' + o.outstandingBalance : 'Paid'}</span>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } else { oBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--accent);">No invoices archived.</td></tr>`; }
+
+            document.getElementById('custProfileDashboardWrapper').style.display = "block";
+            document.getElementById('custProfileDashboardWrapper').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function saveCustomerProfileNotes() {
+            let uid = document.getElementById('profNotesField').dataset.uid;
+            let c = mainSysDb.customers.find(x => x.id === uid);
+            if(c) { c.notes = document.getElementById('profNotesField').value; pushLocalDatabaseCache(); }
+        }
+
+        function openNewCustomerDialog() {
+            let n = prompt("Enter Client Full Name:");
+            let p = prompt("Enter Client Contact Phone Number:");
+            if(n && p) {
+                mainSysDb.customers.push({
+                    id: "CUS-" + Date.now().toString().substring(7), name: n, phone: p, birthday: "1996-01-01",
+                    gender: "Unspecified", notes: "", memberSince: "2026-06-22", points: 0, creditWallet: 0, outstandingBalance: 0, packages: []
+                });
+                pushLocalDatabaseCache(); refreshCustomerHubTableView();
+            }
+        }
+
+        function triggerCustomerDeletionEngine(id) {
+            if(confirm("Are you sure you want to delete this customer profile permanently? All history will be erased.")) {
+                mainSysDb.customers = mainSysDb.customers.filter(c => c.id !== id);
+                pushLocalDatabaseCache(); refreshCustomerHubTableView();
+                document.getElementById('custProfileDashboardWrapper').style.display = "none";
+            }
+        }
+
+        // ================= SUB-MODALS OPERATION CONTEXTS WINDOWS (PROMPTS REPLACEMENTS) =================
+        function openSubModalOverlay(title, innerHtml) {
+            document.getElementById('subModalTitleText').innerText = title;
+            document.getElementById('subModalContentDynamicWrapper').innerHTML = innerHtml;
+            document.getElementById('subModalComponentMask').style.display = "block";
+            document.getElementById('subModalContainerPanel').classList.add('open');
+        }
+
+        function closeActiveSubModalOverlay() {
+            document.getElementById('subModalComponentMask').style.display = "none";
+            document.getElementById('subModalContainerPanel').classList.remove('open');
+        }
+
+        function triggerLaunchPackagePurchaseModal() {
+            let uid = document.getElementById('profId').innerText;
+            let html = `
+                <div class="form-group"><label>Package Template Name</label><input type="text" id="smPkgName" value="Scalp Therapy Package"></div>
+                <div class="form-group"><label>Package Price Cost (RM)</label><input type="number" id="smPkgPrice" value="1200"></div>
+                <div class="form-group"><label>Total Session Quotas Allocated</label><input type="number" id="smPkgSessions" value="10"></div>
+                <div class="form-group"><label>Validity Lifespan Period (Months)</label><input type="number" id="smPkgValidity" value="12"></div>
+                <button class="btn btn-success" style="width:100%;" onclick="commitPackagePurchaseAction('${uid}')">Authorize Purchase</button>
+            `;
+            openSubModalOverlay("Authorize New Treatment Package Subscription", html);
+        }
+
+        function commitPackagePurchaseAction(uid) {
+            let name = document.getElementById('smPkgName').value;
+            let price = parseFloat(document.getElementById('smPkgPrice').value || 0);
+            let sessions = parseInt(document.getElementById('smPkgSessions').value || 0);
+            let mos = parseInt(document.getElementById('smPkgValidity').value || 12);
+
+            let c = mainSysDb.customers.find(x => x.id === uid);
+            if(c && name && price > 0) {
+                let expDate = new Date(2026, 5, 22); expDate.setMonth(expDate.getMonth() + mos);
+                let expStr = expDate.toISOString().split('T')[0];
+
+                c.packages.push({
+                    id: "pkg_" + Date.now().toString().substring(8), name, totalSessions: sessions, remainingSessions: sessions,
+                    price, purchaseDate: "2026-06-22", expiryDate: expStr, history: []
+                });
+                
+                // 将购买行为自动转化为对应收入账目归档
+                let invToken = "LS-PKG-" + Date.now().toString().substring(9);
+                mainSysDb.records.push({
+                    id: invToken, date: "2026-06-22", type: "income", invoiceToken: invToken,
+                    customerUid: c.id, customerName: c.name, details: `Purchased 配套: ${name}`,
+                    amount: price, paidAmount: price, outstandingBalance: 0, payStatus: "Fully Paid", payMethod: "Cash",
+                    staffAllocation: { main: "Jason", helper: "", shampoo: "" },
+                    commissionMetrics: { main: price * 0.05, helper: 0, shampoo: 0, overriden: false, reason: "Package sales bonus base" },
+                    packageDeduction: null, pointsYielded: price
+                });
+
+                pushLocalDatabaseCache(); closeActiveSubModalOverlay(); invokeCustomerDossierTrackingView(uid);
+            }
+        }
+
+        function triggerLaunchArrearsClearModal() {
+            let uid = document.getElementById('profId').innerText;
+            let c = mainSysDb.customers.find(x => x.id === uid);
+            if(!c || c.outstandingBalance <= 0) { alert("This customer holds no arrears debt balance."); return; }
+
+            let html = `
+                <p style="margin-bottom:12px;">Current Outstanding Balance Due Pool: <b style="color:var(--danger); font-size:1.1rem;">RM ${c.outstandingBalance.toFixed(2)}</b></p>
+                <div class="form-group"><label>Insert Payment Processing Amount (RM)</label><input type="number" id="smArrearsAmt" value="${c.outstandingBalance}" max="${c.outstandingBalance}" step="0.01"></div>
+                <div class="form-group"><label>Payment Method Category</label>
+                    <select id="smArrearsMethod">
+                        <option value="Cash">Cash</option><option value="QR Payment">QR Payment</option><option value="Online Transfer">Online Transfer</option>
+                    </select>
+                </div>
+                <button class="btn btn-success" style="width:100%;" onclick="commitArrearsClearAction('${uid}')">Authorize Installment Flat Settlement</button>
+            `;
+            openSubModalOverlay("Process Arrears Partial / Complete Installment Repayment", html);
+        }
+
+        function commitArrearsClearAction(uid) {
+            let paid = parseFloat(document.getElementById('smArrearsAmt').value || 0);
+            let method = document.getElementById('smArrearsMethod').value;
+            let c = mainSysDb.customers.find(x => x.id === uid);
+
+            if(c && paid > 0) {
+                c.outstandingBalance = Math.max(0, c.outstandingBalance - paid);
+                
+                // 对关联过账的不合单未结账目记录实施资产链更新更新
+                let unfinishedOrder = mainSysDb.records.find(r => r.customerUid === uid && r.outstandingBalance > 0);
+                if(unfinishedOrder) {
+                    unfinishedOrder.paidAmount += paid;
+                    unfinishedOrder.outstandingBalance = Math.max(0, unfinishedOrder.outstandingBalance - paid);
+                    if(unfinishedOrder.outstandingBalance === 0) unfinishedOrder.payStatus = "Fully Paid";
+                }
+
+                alert("Payment authorized! Arrears database has sync completely.");
+                pushLocalDatabaseCache(); closeActiveSubModalOverlay(); invokeCustomerDossierTrackingView(uid);
+            }
+        }
+
+        function triggerLaunchPointsRedeemModal() {
+            let uid = document.getElementById('profId').innerText;
+            let c = mainSysDb.customers.find(x => x.id === uid);
+            if(!c) return;
+
+            let html = `<p style="margin-bottom:10px;">Available Member Point Balance: <b>${c.points} pts</b></p><div class="grid-2">`;
+            mainSysDb.rewardsCatalog.forEach(r => {
+                let disabled = c.points < r.pointsRequired ? "disabled style='opacity:0.5;'" : "";
+                html += `
+                    <div class="dash-card" style="text-align:center;">
+                        <h4>${r.name}</h4>
+                        <p style="color:var(--accent); font-weight:bold;">${r.pointsRequired} Points</p>
+                        <button class="btn btn-sm" style="margin-top:8px;" ${disabled} onclick="commitPointsRedemptionAction('${uid}','${r.id}')">Redeem</button>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+            openSubModalOverlay("Redeem Loyalty Reward Voucher", html);
+        }
+
+        function commitPointsRedemptionAction(uid, rid) {
+            let c = mainSysDb.customers.find(x => x.id === uid);
+            let r = mainSysDb.rewardsCatalog.find(x => x.id === rid);
+            if(c && r && c.points >= r.pointsRequired) {
+                c.points -= r.pointsRequired;
+                alert(`Successfully redeemed: [${r.name}]! 1x Voucher item pushed into client profile account.`);
+                pushLocalDatabaseCache(); closeActiveSubModalOverlay(); invokeCustomerDossierTrackingView(uid);
+            }
+        }
+
+        function triggerLaunchStaffCommissionBreakdownDossier(staffName) {
+            let records = mainSysDb.records.filter(r => r.type==='income' && (r.staffAllocation.main === staffName || r.staffAllocation.helper === staffName || r.staffAllocation.shampoo === staffName));
+            let html = `<div style="max-height:400px; overflow-y:auto;"><table style="font-size:0.78rem;"><thead><tr><th>Date</th><th>Client</th><th>Details</th><th>Value</th><th>Comm</th></tr></thead><tbody>`;
+            
+            records.forEach(r => {
+                let amt = 0;
+                if(r.staffAllocation.main === staffName) amt = r.commissionMetrics.main;
+                else if(r.staffAllocation.helper === staffName) amt = r.commissionMetrics.helper;
+                else if(r.staffAllocation.shampoo === staffName) amt = r.commissionMetrics.shampoo;
+
+                html += `<tr><td>${r.date}</td><td>${r.customerName}</td><td><small>${r.details}</small></td><td>RM ${r.amount}</td><td style="font-weight:bold; color:var(--success);">RM ${amt.toFixed(1)}</td></tr>`;
+            });
+            html += `</tbody></table></div>`;
+            openSubModalOverlay(`Operational Audit Comm Ledger: ${staffName}`, html);
+        }
+
+        function triggerLaunchDetailsViewerModal(id) {
+            let r = mainSysDb.records.find(x => x.id === id);
+            if(!r) return;
+            let bodyHtml = "";
+            if(r.type === 'income') {
+                bodyHtml = `
+                    <div style="line-height:2; font-size:0.9rem;">
+                        <div><b>Invoice Token ID:</b> ${r.invoiceToken}</div>
+                        <div><b>Transaction Date:</b> ${r.date}</div>
+                        <div><b>Client Target Entity:</b> ${r.customerName} (UID: ${r.customerUid})</div>
+                        <div><b>Line Details Particulars:</b> ${r.details}</div>
+                        <div><b>Invoice Gross Value:</b> RM ${r.amount.toFixed(2)}</div>
+                        <div><b>Customer Actual Paid:</b> RM ${r.paidAmount.toFixed(2)}</div>
+                        <div><b>Arrears Pool Outstanding:</b> RM ${r.outstandingBalance.toFixed(2)}</div>
+                        <div><b>Settlement Flow Status:</b> ${r.payStatus}</div>
+                        <div><b>Payment Method Way:</b> ${r.payMethod}</div>
+                        <hr style="border:none; border-top:1px solid var(--secondary); margin:10px 0;">
+                        <div><b>Main Allocated Stylist:</b> ${r.staffAllocation.main} (Earned: RM ${r.commissionMetrics.main.toFixed(2)})</div>
+                        <div><b>Assigned Helper:</b> ${r.staffAllocation.helper || 'None'} (Earned: RM ${r.commissionMetrics.helper.toFixed(2)})</div>
+                        <div><b>Shampoo Operator Girl:</b> ${r.staffAllocation.shampoo || 'None'} (Earned: RM ${r.commissionMetrics.shampoo.toFixed(2)})</div>
+                        <div><b>Override Audit Reason:</b> <span style="color:var(--accent);">${r.commissionMetrics.reason || 'Standard Rule Matrix'}</span></div>
+                    </div>
+                `;
+            } else {
+                bodyHtml = `
+                    <div style="line-height:2; font-size:0.9rem;">
+                        <div><b>Expense Token ID:</b> ${r.id}</div>
+                        <div><b>Voucher Invoice No:</b> ${r.invoiceToken}</div>
+                        <div><b>Transaction Date:</b> ${r.date}</div>
+                        <div><b>Main Ledger Category:</b> ${r.category}</div>
+                        <div><b>Sub Node Item:</b> ${r.item}</div>
+                        <div><b>Particular Details:</b> ${r.details}</div>
+                        <div><b>Asset Capital Amount:</b> RM ${r.amount.toFixed(2)}</div>
+                        <div><b>Method Classification:</b> ${r.payMethod}</div>
+                    </div>
+                `;
+            }
+            openSubModalOverlay("Unified System Archive Audit Document", bodyHtml);
+        }
+
+        // ================= INTERACTIVE COMPONENT: PAGE 5: STAFF REGISTRY =================
+        function refreshStaffRegistryTableView() {
+            const tbody = document.getElementById('staffRegistryTableBody'); tbody.innerHTML = '';
+            mainSysDb.staff.forEach(s => {
+                let filtered = mainSysDb.records.filter(r=>r.date.startsWith("2026-06") && r.type==='income');
+                let monthRev = filtered.filter(r=>r.staffAllocation.main === s.name).reduce((sum,r)=>sum+r.amount,0);
+                
+                let monthComm = filtered.reduce((sum, r) => {
+                    let st = r.staffAllocation;
+                    if(st.main === s.name) sum += r.commissionMetrics.main;
+                    if(st.helper === s.name) sum += r.commissionMetrics.helper;
+                    if(st.shampoo === s.name) sum += r.commissionMetrics.shampoo;
+                    return sum;
+                }, 0);
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><small><b>${s.id}</b></small></td>
+                        <td><b style="font-size:1rem;">${s.name}</b><br><small style="color:var(--accent);">Joined: ${s.joinDate}</small></td>
+                        <td><span class="badge" style="background-color:var(--secondary); font-weight:700;">${s.position}</span></td>
+                        <td>${s.phone}</td>
+                        <td style="font-weight:700;">RM ${monthRev.toFixed(0)}</td>
+                        <td style="font-weight:800; color:var(--success);">RM ${monthComm.toFixed(2)}</td>
+                        <td>
+                            <div style="display:flex; gap:4px;">
+                                <button class="btn btn-sm btn-danger" onclick="triggerStaffDismissalEngine('${s.id}')">Dismiss</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function openRegisterStaffDialog() {
+            let name = prompt("Enter New Stylist Name:");
+            let pos = prompt("Enter Position Rank (Senior Hair Stylist / Junior Hair Stylist / Assistant / Shampoo Girl):", "Senior Hair Stylist");
+            let phone = prompt("Enter Contact Number:");
+            if(name && pos) {
+                mainSysDb.staff.push({
+                    id: "STF-" + Date.now().toString().substring(7), name, position: pos, phone: phone || "+6012000000",
+                    joinDate: "2026-06-22", status: "Active"
+                });
+                pushLocalDatabaseCache(); refreshStaffRegistryTableView();
+            }
+        }
+
+        function triggerStaffDismissalEngine(id) {
+            if(confirm("Dangerous Action: Remove this staff profile template from HR configuration registry?")) {
+                mainSysDb.staff = mainSysDb.staff.filter(s=>s.id !== id);
+                pushLocalDatabaseCache(); refreshStaffRegistryTableView();
+            }
+        }
+
+        // ================= INTERACTIVE COMPONENT: PAGE 6: CONTROL PANEL CONFIGURATIONS =================
+        function refreshSettingsConfigurationsUI() {
+            let sUl = document.getElementById('cfgServicesListUl'); sUl.innerHTML = '';
+            mainSysDb.services.forEach((s,idx) => {
+                sUl.innerHTML += `<li>🏷️ <b>${s.name}</b> (RM ${s.price}) <span style="color:var(--danger); cursor:pointer; font-weight:bold; margin-left:10px;" onclick="removeConfigCatalogItem('services', ${idx})">✕</span></li>`;
+            });
+
+            let aUl = document.getElementById('cfgAddonsListUl'); aUl.innerHTML = '';
+            mainSysDb.addons.forEach((a,idx) => {
+                aUl.innerHTML += `<li>📦 <b>${a.name}</b> (RM ${a.price}) <span style="color:var(--danger); cursor:pointer; font-weight:bold; margin-left:10px;" onclick="removeConfigCatalogItem('addons', ${idx})">✕</span></li>`;
+            });
+
+            let rUl = document.getElementById('cfgRewardsListUl'); rUl.innerHTML = '';
+            mainSysDb.rewardsCatalog.forEach((r,idx) => {
+                rUl.innerHTML += `<li>🎁 <b>${r.name}</b> (${r.pointsRequired} pts) <span style="color:var(--danger); cursor:pointer; font-weight:bold; margin-left:10px;" onclick="removeConfigCatalogItem('rewardsCatalog', ${idx})">✕</span></li>`;
+            });
+
+            // 渲染资产损耗分类树视图
+            let expTree = document.getElementById('cfgExpenseTreeContainer'); expTree.innerHTML = '';
+            Object.keys(mainSysDb.expenseCatalog).forEach(cat => {
+                expTree.innerHTML += `<div><b>📁 ${cat}</b></div>`;
+                mainSysDb.expenseCatalog[cat].forEach((item, idx) => {
+                    expTree.innerHTML += `<div style="padding-left:18px; color:var(--text); opacity:0.8;">• ${item} <span style="color:var(--danger); cursor:pointer;" onclick="removeConfigExpenseTreeLeaf('${cat}', ${idx})">✕</span></div>`;
+                });
+            });
+
+            // 渲染阶梯佣金比率配置器
+            let commBox = document.getElementById('cfgCommRulesContainer'); commBox.innerHTML = '';
+            mainSysDb.commTiers.sort((a,b)=>a.minRevenue - b.minRevenue).forEach((tier, idx) => {
+                commBox.innerHTML += `
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <span>Revenue ≥ RM</span><input type="number" value="${tier.minRevenue}" style="width:100px; padding:4px;" onchange="updateTierCommissionConfigRule(${idx}, 'min', this.value)">
+                        <span>Yields:</span><input type="number" value="${tier.percentage}" style="width:70px; padding:4px;" onchange="updateTierCommissionConfigRule(${idx}, 'pct', this.value)"><b>%</b>
+                        <span style="color:var(--danger); cursor:pointer; font-weight:bold; margin-left:5px;" onclick="removeTierCommissionConfigRule(${idx})">✕</span>
+                    </div>
+                `;
+            });
+
+            document.getElementById('cfgPointBaseRM').value = mainSysDb.pointsRule.baseRM;
+            document.getElementById('cfgPointYield').value = mainSysDb.pointsRule.yieldPoints;
+        }
+
+        function commitConfigCatalogAppend(catalogKey) {
+            let n = catalogKey==='services' ? document.getElementById('cfgSrvName').value : document.getElementById('cfgAddonName').value;
+            let p = catalogKey==='services' ? parseFloat(document.getElementById('cfgSrvPrice').value || 0) : parseFloat(document.getElementById('cfgAddonPrice').value || 0);
+            
+            if(n && p > 0) {
+                mainSysDb[catalogKey].push({ id: catalogKey.substring(0,3) + Date.now().toString().substring(10), name: n, price: p });
+                pushLocalDatabaseCache(); refreshSettingsConfigurationsUI();
+                if(catalogKey==='services') { document.getElementById('cfgSrvName').value=''; document.getElementById('cfgSrvPrice').value=''; }
+                else { document.getElementById('cfgAddonName').value=''; document.getElementById('cfgAddonPrice').value=''; }
+            }
+        }
+
+        function commitConfigExpenseItemAppend() {
+            let cat = document.getElementById('cfgExpMainCat').value;
+            let item = document.getElementById('cfgExpItemName').value;
+            if(item && mainSysDb.expenseCatalog[cat]) {
+                mainSysDb.expenseCatalog[cat].push(item);
+                pushLocalDatabaseCache(); refreshSettingsConfigurationsUI();
+                document.getElementById('cfgExpItemName').value = '';
+            }
+        }
+
+        function commitConfigRewardItemAppend() {
+            let n = document.getElementById('cfgRewardName').value;
+            let p = parseInt(document.getElementById('cfgRewardPoints').value || 0);
+            if(n && p > 0) {
+                mainSysDb.rewardsCatalog.push({ id: "rew" + Date.now().toString().substring(10), name: n, pointsRequired: p });
+                pushLocalDatabaseCache(); refreshSettingsConfigurationsUI();
+                document.getElementById('cfgRewardName').value=''; document.getElementById('cfgRewardPoints').value='';
+            }
+        }
+
+        function removeConfigCatalogItem(key, idx) { mainSysDb[key].splice(idx,1); pushLocalDatabaseCache(); refreshSettingsConfigurationsUI(); }
+        function removeConfigExpenseTreeLeaf(cat, idx) { mainSysDb.expenseCatalog[cat].splice(idx,1); pushLocalDatabaseCache(); refreshSettingsConfigurationsUI(); }
+
+        function addNewTierCommissionConfigRule() { mainSysDb.commTiers.push({ minRevenue: 10000, percentage: 10 }); pushLocalDatabaseCache(); refreshSettingsConfigurationsUI(); }
+        function removeTierCommissionConfigRule(idx) { mainSysDb.commTiers.splice(idx,1); pushLocalDatabaseCache(); refreshSettingsConfigurationsUI(); }
+        function updateTierCommissionConfigRule(idx, type, val) {
+            let v = parseFloat(val || 0);
+            if(type === 'min') mainSysDb.commTiers[idx].minRevenue = v; else mainSysDb.commTiers[idx].percentage = v;
+            pushLocalDatabaseCache();
+        }
+
+        function saveGlobalPointsConversionRule() {
+            mainSysDb.pointsRule.baseRM = parseFloat(document.getElementById('cfgPointBaseRM').value || 1);
+            mainSysDb.pointsRule.yieldPoints = parseFloat(document.getElementById('cfgPointYield').value || 1);
+            pushLocalDatabaseCache();
+        }
+
+        // ================= BACKUP INTERCHANGE UTILITIES (EXPORTS & IMPORTS) =================
+        function triggerCloudDatabaseDownloadJSON() {
+            let str = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(mainSysDb));
+            let anchor = document.createElement('a'); anchor.setAttribute("href", str);
+            anchor.setAttribute("download", `LuxeSalon_CloudModel_Dump_2026.json`);
+            document.body.appendChild(anchor); anchor.click(); anchor.remove();
+        }
+
+        function importJSONBackupDataEngine(event) {
+            let rdr = new FileReader();
+            rdr.onload = function(e) {
+                try {
+                    let parsed = JSON.parse(e.target.result);
+                    if(parsed.records && parsed.customers && parsed.services) {
+                        mainSysDb = parsed; pushLocalDatabaseCache();
+                        alert("Cloud-Node Database successfully uploaded & integrated into local node.");
+                        switchRoutingEngine('calendar');
+                    } else { alert("Data structure rejection. Object schemas mismatch."); }
+                } catch(err){ alert("Fatal: Corrupted JSON script."); }
+            };
+            rdr.readAsText(event.target.files[0]);
+        }
+
+        function triggerSystemExportEngine(format) {
+            let text = "Date,Type,Invoice Token,Entity Category,Details Particulars,Amount Value RM,Payment Method\n";
+            mainSysDb.records.forEach(r => {
+                text += `${r.date},${r.type},${r.invoiceToken || r.id},${r.customerName || r.category},${r.details || r.item},${r.amount},${r.payMethod || 'N/A'}\n`;
+            });
+            let dataUri = 'data:text/' + format + ';charset=utf-8,' + encodeURIComponent(text);
+            let downloadLink = document.createElement('a'); downloadLink.setAttribute("href", dataUri);
+            downloadLink.setAttribute("download", `LuxeSalon_MasterSheet.${format}`);
+            document.body.appendChild(downloadLink); downloadLink.click(); downloadLink.remove();
+        }
+
+        function wipeAndResetFactoryDatabase() {
+            if(confirm("🚨 CRITICAL WARNING: You are about to initiate a hard reset. This action clears all operational matrices, transaction logs, and customer profiles permanently. Proceed?")) {
+                localStorage.removeItem("LUXE_SALON_MATRIX_PRO_DB");
+                window.location.reload();
+            }
+        }
+
+        // 窗口加载总初始化挂载
+        window.onload = function() {
+            executeDatabaseInitialization();
+            switchRoutingEngine('calendar');
+        };
+    </script>
+</body>
+</html>
